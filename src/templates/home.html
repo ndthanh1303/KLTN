@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <meta
+        name="description"
+        content="Cửa hàng thiết bị vệ sinh, thiết bị và phụ kiện phòng tắm."
+    >
+
+    <title>Trang chủ | Thiết bị vệ sinh</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/home.css') }}"
+    >
+</head>
+
+<body>
+    {# Dữ liệu được lấy từ MySQL qua app.py #}
+    {% set danh_muc = home_data["danh_muc"] %}
+    {% set thuong_hieu = home_data["thuong_hieu"] %}
+    {% set san_pham = home_data["san_pham"] %}
+
+    {# Định dạng tiền Việt Nam #}
+    {% macro tien_viet(gia) -%}
+        {{ "{:,.0f}".format(gia | float).replace(",", ".") }} đ
+    {%- endmacro %}
+
+    {# Thẻ sản phẩm dùng chung #}
+    {% macro the_san_pham(sp) %}
+        {% set gia = sp["gia"] | float %}
+
+        {% set gia_km = (
+            sp["gia_khuyen_mai"] | float
+            if sp["gia_khuyen_mai"] is not none
+            else gia
+        ) %}
+
+        {% set dang_giam_gia = (
+            sp["gia_khuyen_mai"] is not none
+            and gia_km >= 0
+            and gia_km < gia
+        ) %}
+
+        <article
+            class="product-card"
+            data-product
+            data-name="{{ sp['ten_san_pham'] }}"
+            data-code="{{ sp['ma_san_pham'] }}"
+            data-category="{{ sp['danh_muc_id'] }}"
+            data-brand="{{ sp['thuong_hieu_id'] or '' }}"
+        >
+            <div class="product-image">
+                {% if sp["url_anh"] %}
+                    <img
+                        src="{{ sp['url_anh'] }}"
+                        alt="{{ sp['ten_san_pham'] }}"
+                        loading="lazy"
+                        decoding="async"
+                    >
+                {% else %}
+                    <span class="image-placeholder">
+                        Chưa có hình ảnh
+                    </span>
+                {% endif %}
+
+                {% if dang_giam_gia %}
+                    {% set phan_tram = (
+                        (gia - gia_km) / gia * 100
+                    ) | round(0, "floor") | int %}
+
+                    <span class="discount-badge">
+                        -{{ phan_tram }}%
+                    </span>
+                {% endif %}
+            </div>
+
+            <div class="product-info">
+                <p class="product-code">
+                    {{ sp["ma_san_pham"] }}
+                </p>
+
+                <h3 class="product-name">
+                    {{ sp["ten_san_pham"] }}
+                </h3>
+
+                <div class="product-prices">
+                    <strong class="current-price">
+                        {{ tien_viet(gia_km if dang_giam_gia else gia) }}
+                    </strong>
+
+                    {% if dang_giam_gia %}
+                        <del class="original-price">
+                            {{ tien_viet(gia) }}
+                        </del>
+                    {% endif %}
+                </div>
+
+                {% if sp["so_luong_ton"] > 0 %}
+                    <p class="stock-status in-stock">Còn hàng</p>
+                {% else %}
+                    <p class="stock-status out-of-stock">Hết hàng</p>
+                {% endif %}
+            </div>
+        </article>
+    {% endmacro %}
+
+    <!-- Biểu tượng dùng chung -->
+    <svg
+        class="svg-definitions"
+        xmlns="http://www.w3.org/2000/svg"
+        aria-hidden="true"
+    >
+        <symbol id="icon-search" viewBox="0 0 24 24">
+            <circle cx="10.5" cy="10.5" r="6.5"/>
+            <path d="m16 16 5 5"/>
+        </symbol>
+
+        <symbol id="icon-home" viewBox="0 0 24 24">
+            <path d="m3 10 9-7 9 7"/>
+            <path d="M5 9v12h5v-7h4v7h5V9"/>
+        </symbol>
+
+        <symbol id="icon-user" viewBox="0 0 24 24">
+            <circle cx="12" cy="7" r="4"/>
+            <path d="M4 21v-2a8 8 0 0 1 16 0v2"/>
+        </symbol>
+
+        <symbol id="icon-grid" viewBox="0 0 24 24">
+            <rect x="3" y="3" width="7" height="7" rx="1"/>
+            <rect x="14" y="3" width="7" height="7" rx="1"/>
+            <rect x="3" y="14" width="7" height="7" rx="1"/>
+            <rect x="14" y="14" width="7" height="7" rx="1"/>
+        </symbol>
+    </svg>
+
+    <a href="#main-content" class="skip-link">
+        Chuyển đến nội dung chính
+    </a>
+
+    <!-- Đầu trang -->
+    <header class="site-header">
+        <div class="container header-inner">
+
+            <a
+                href="{{ url_for('trang_chu') }}"
+                class="site-brand"
+                aria-label="Về trang chủ"
+            >
+                <span class="brand-mark">HCMUTE</span>
+                <span class="brand-caption">Thiết bị vệ sinh</span>
+            </a>
+
+            <form class="search-form" id="search-form" role="search">
+                <label class="sr-only" for="search-input">
+                    Tìm theo tên hoặc mã sản phẩm
+                </label>
+
+                <svg class="icon">
+                    <use href="#icon-search"/>
+                </svg>
+
+                <input
+                    id="search-input"
+                    type="search"
+                    placeholder="Tìm theo tên hoặc mã sản phẩm"
+                    autocomplete="off"
+                    maxlength="150"
+                >
+
+                <button type="submit">Tìm kiếm</button>
+            </form>
+
+            <nav class="header-nav" aria-label="Điều hướng chính">
+                <a
+                    href="{{ url_for('trang_chu') }}"
+                    class="nav-link active"
+                    aria-current="page"
+                >
+                    <svg class="icon">
+                        <use href="#icon-home"/>
+                    </svg>
+                    <span>Trang chủ</span>
+                </a>
+
+                <a href="/register" class="nav-link">
+                    <svg class="icon">
+                        <use href="#icon-user"/>
+                    </svg>
+                    <span>Tài khoản</span>
+                </a>
+            </nav>
+
+        </div>
+
+        <div class="header-description">
+            <div class="container">
+                Thiết bị và phụ kiện cho không gian phòng tắm
+            </div>
+        </div>
+    </header>
+
+    <div
+        class="container page-layout
+        {% if not danh_muc %}without-sidebar{% endif %}"
+    >
+        <!-- Chỉ hiện danh mục khi database có dữ liệu -->
+        {% if danh_muc %}
+            <aside class="sidebar" aria-labelledby="category-heading">
+                <div class="panel category-panel">
+                    <h2 id="category-heading">
+                        <svg class="icon">
+                            <use href="#icon-grid"/>
+                        </svg>
+                        Danh mục
+                    </h2>
+
+                    <nav
+                        class="category-list"
+                        aria-label="Lọc theo danh mục"
+                    >
+                        <button
+                            type="button"
+                            class="category-button selected"
+                            data-category-filter=""
+                            aria-pressed="true"
+                        >
+                            <span class="category-symbol">▦</span>
+                            <span>Tất cả sản phẩm</span>
+                        </button>
+
+                        {% for dm in danh_muc %}
+                            <button
+                                type="button"
+                                class="category-button"
+                                data-category-filter="{{ dm['danh_muc_id'] }}"
+                                aria-pressed="false"
+                            >
+                                {% if dm["hinh_anh"] %}
+                                    <img
+                                        src="{{ dm['hinh_anh'] }}"
+                                        alt=""
+                                        loading="lazy"
+                                    >
+                                {% else %}
+                                    <span class="category-symbol">▦</span>
+                                {% endif %}
+
+                                <span>{{ dm["ten_danh_muc"] }}</span>
+                            </button>
+                        {% endfor %}
+                    </nav>
+                </div>
+            </aside>
+        {% endif %}
+
+        <main class="main-content" id="main-content">
+
+            <!-- Thương hiệu -->
+            {% if thuong_hieu %}
+                <section
+                    class="panel brands-section"
+                    aria-labelledby="brands-heading"
+                >
+                    <div class="section-heading">
+                        <h2 id="brands-heading">Thương hiệu sản phẩm</h2>
+
+                        <button
+                            type="button"
+                            class="text-button"
+                            id="reset-brand"
+                            hidden
+                        >
+                            Bỏ lọc thương hiệu
+                        </button>
+                    </div>
+
+                    <div class="brand-list">
+                        {% for th in thuong_hieu %}
+                            <button
+                                type="button"
+                                class="brand-item"
+                                data-brand-filter="{{ th['thuong_hieu_id'] }}"
+                                aria-pressed="false"
+                            >
+                                {% if th["hinh_anh"] %}
+                                    <img
+                                        src="{{ th['hinh_anh'] }}"
+                                        alt=""
+                                        loading="lazy"
+                                    >
+                                {% endif %}
+
+                                <span>{{ th["ten_thuong_hieu"] }}</span>
+                            </button>
+                        {% endfor %}
+                    </div>
+                </section>
+            {% endif %}
+
+            <!-- Tìm các sản phẩm có khuyến mãi hợp lệ -->
+            {% set khuyen_mai = namespace(items=[]) %}
+
+            {% for sp in san_pham %}
+                {% if
+                    sp["gia_khuyen_mai"] is not none
+                    and sp["gia_khuyen_mai"] | float >= 0
+                    and sp["gia_khuyen_mai"] | float < sp["gia"] | float
+                %}
+                    {% set khuyen_mai.items = khuyen_mai.items + [sp] %}
+                {% endif %}
+            {% endfor %}
+
+            {% if khuyen_mai.items %}
+                <section
+                    class="panel products-section"
+                    id="sale-section"
+                    aria-labelledby="sale-heading"
+                >
+                    <div class="section-heading">
+                        <h2 id="sale-heading" class="sale-heading">
+                            <span class="sale-symbol">%</span>
+                            Sản phẩm khuyến mãi
+                        </h2>
+                    </div>
+
+                    <div class="sale-grid">
+                        {% for sp in khuyen_mai.items %}
+                            {{ the_san_pham(sp) }}
+                        {% endfor %}
+                    </div>
+                </section>
+            {% endif %}
+
+            <!-- Danh sách sản phẩm -->
+            {% if san_pham %}
+                <section
+                    class="panel products-section"
+                    id="catalog-section"
+                    aria-labelledby="catalog-heading"
+                >
+                    <div class="section-heading catalog-heading">
+                        <div>
+                            <h1 id="catalog-heading">Sản phẩm mới</h1>
+
+                            <p
+                                class="results-count"
+                                id="results-count"
+                                role="status"
+                            >
+                                {{ san_pham | length }} sản phẩm
+                            </p>
+                        </div>
+
+                        <button
+                            type="button"
+                            class="text-button"
+                            id="reset-filters"
+                            hidden
+                        >
+                            Xóa bộ lọc
+                        </button>
+                    </div>
+
+                    <div class="product-grid" id="product-grid">
+                        {% for sp in san_pham %}
+                            {{ the_san_pham(sp) }}
+                        {% endfor %}
+                    </div>
+
+                    <p class="empty-results" id="empty-results" hidden>
+                        Không tìm thấy sản phẩm phù hợp.
+                    </p>
+                </section>
+            {% endif %}
+
+        </main>
+    </div>
+
+    <!-- Chân trang -->
+    <footer class="site-footer">
+        <div class="container footer-inner">
+            <div>
+                <p class="footer-title">THIẾT BỊ VỆ SINH</p>
+                <p>Thiết bị và phụ kiện phòng tắm.</p>
+            </div>
+
+            <p class="footer-project">
+                Khóa luận tốt nghiệp — HCMUTE
+            </p>
+        </div>
+    </footer>
+
+    <!--
+        Lọc dữ liệu đã được Flask lấy từ MySQL.
+        Không tạo sản phẩm mẫu, không lưu giỏ hàng mẫu.
+    -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const searchForm = document.getElementById("search-form");
+            const searchInput = document.getElementById("search-input");
+
+            const productCards = Array.from(
+                document.querySelectorAll("#product-grid [data-product]")
+            );
+
+            const categoryButtons = Array.from(
+                document.querySelectorAll("[data-category-filter]")
+            );
+
+            const brandButtons = Array.from(
+                document.querySelectorAll("[data-brand-filter]")
+            );
+
+            const resetFilters = document.getElementById("reset-filters");
+            const resetBrand = document.getElementById("reset-brand");
+            const resultsCount = document.getElementById("results-count");
+            const emptyResults = document.getElementById("empty-results");
+            const catalogSection = document.getElementById("catalog-section");
+            const saleSection = document.getElementById("sale-section");
+
+            let categoryId = "";
+            let brandId = "";
+
+            function normalizeText(value) {
+                return String(value)
+                    .normalize("NFD")
+                    .replace(/[\u0300-\u036f]/g, "")
+                    .replace(/đ/g, "d")
+                    .replace(/Đ/g, "D")
+                    .toLowerCase()
+                    .trim();
+            }
+
+            function updateButtonStates() {
+                categoryButtons.forEach(function (button) {
+                    const selected =
+                        button.dataset.categoryFilter === categoryId;
+
+                    button.classList.toggle("selected", selected);
+                    button.setAttribute("aria-pressed", String(selected));
+                });
+
+                brandButtons.forEach(function (button) {
+                    const selected =
+                        button.dataset.brandFilter === brandId;
+
+                    button.classList.toggle("selected", selected);
+                    button.setAttribute("aria-pressed", String(selected));
+                });
+
+                if (resetBrand) {
+                    resetBrand.hidden = brandId === "";
+                }
+            }
+
+            function filterProducts() {
+                const query = normalizeText(searchInput.value);
+                const terms = query.split(/\s+/).filter(Boolean);
+                let visibleCount = 0;
+
+                productCards.forEach(function (card) {
+                    const productText = normalizeText(
+                        card.dataset.name + " " + card.dataset.code
+                    );
+
+                    const matchesSearch = terms.every(function (term) {
+                        return productText.includes(term);
+                    });
+
+                    const matchesCategory =
+                        !categoryId ||
+                        card.dataset.category === categoryId;
+
+                    const matchesBrand =
+                        !brandId ||
+                        card.dataset.brand === brandId;
+
+                    const visible =
+                        matchesSearch && matchesCategory && matchesBrand;
+
+                    card.hidden = !visible;
+
+                    if (visible) {
+                        visibleCount += 1;
+                    }
+                });
+
+                const filtering = Boolean(query || categoryId || brandId);
+
+                if (resultsCount) {
+                    resultsCount.textContent = visibleCount + " sản phẩm";
+                }
+
+                if (emptyResults) {
+                    emptyResults.hidden = visibleCount !== 0;
+                }
+
+                if (resetFilters) {
+                    resetFilters.hidden = !filtering;
+                }
+
+                // Khi lọc, chỉ hiển thị kết quả trong danh sách chính.
+                if (saleSection) {
+                    saleSection.hidden = filtering;
+                }
+
+                updateButtonStates();
+            }
+
+            searchForm.addEventListener("submit", function (event) {
+                event.preventDefault();
+                filterProducts();
+
+                if (catalogSection) {
+                    catalogSection.scrollIntoView({
+                        behavior: "auto",
+                        block: "start"
+                    });
+                }
+            });
+
+            searchInput.addEventListener("input", filterProducts);
+
+            categoryButtons.forEach(function (button) {
+                button.addEventListener("click", function () {
+                    categoryId = button.dataset.categoryFilter;
+                    filterProducts();
+                });
+            });
+
+            brandButtons.forEach(function (button) {
+                button.addEventListener("click", function () {
+                    const selectedId = button.dataset.brandFilter;
+
+                    brandId = brandId === selectedId ? "" : selectedId;
+                    filterProducts();
+                });
+            });
+
+            if (resetBrand) {
+                resetBrand.addEventListener("click", function () {
+                    brandId = "";
+                    filterProducts();
+                });
+            }
+
+            if (resetFilters) {
+                resetFilters.addEventListener("click", function () {
+                    searchInput.value = "";
+                    categoryId = "";
+                    brandId = "";
+                    filterProducts();
+                });
+            }
+        });
+    </script>
+</body>
+</html>

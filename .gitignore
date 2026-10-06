@@ -216,3 +216,16 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# File tam cua Word, Excel, PowerPoint
+~$*
+
+# Cac bien the cua file cau hinh moi truong
+.env.*
+
+# Van cho phep luu file cau hinh mau
+!.env.example
+
+# Truy cap db
+.env
+.venv/
