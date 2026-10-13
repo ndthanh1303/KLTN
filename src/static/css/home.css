@@ -569,7 +569,6 @@ input:focus-visible {
     -webkit-line-clamp: 2;
     line-clamp: 2;
     overflow: hidden;
-
     min-height: 42px;
     margin: 0 0 12px;
     font-size: 14px;
@@ -648,6 +647,114 @@ input:focus-visible {
 }
 
 /* =========================
+   Đăng nhập, đăng ký và menu tài khoản
+   ========================= */
+
+.auth-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+
+.auth-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 8px;
+    border-radius: 8px;
+    color: var(--primary);
+    font-weight: 500;
+}
+
+.auth-button:hover {
+    background: var(--primary-light);
+}
+
+.account-menu {
+    position: relative;
+}
+
+/* Giữ nút họ tên rộng theo nội dung khi .nav-link thu nhỏ trên tablet. */
+
+.account-menu .account-trigger {
+    width: auto;
+    cursor: pointer;
+    list-style: none;
+    color: var(--primary);
+}
+
+.account-trigger::-webkit-details-marker {
+    display: none;
+}
+
+.account-trigger::after {
+    content: "▾";
+    font-size: 12px;
+}
+
+.account-trigger:focus-visible {
+    outline: 3px solid var(--primary);
+    outline-offset: 3px;
+}
+
+.account-fullname {
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 500;
+}
+
+.account-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    z-index: 40;
+    width: 220px;
+    max-width: calc(100vw - 24px);
+    padding: 6px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: white;
+    box-shadow: 0 6px 20px rgb(0 0 0 / 12%);
+}
+
+/* Các mục menu dùng chung kiểu chữ và nền; nút đăng xuất không có viền riêng. */
+
+.account-dropdown .account-item,
+.account-dropdown .logout-button {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    color: var(--text);
+    font: inherit;
+    text-align: left;
+}
+
+.account-dropdown .account-item:hover,
+.account-dropdown .logout-button:hover {
+    background: transparent;
+    color: #dc2626;
+}
+
+/* Đặt ngoài @media để áp dụng cho cả máy tính và điện thoại. */
+
+.logout-form {
+    margin: 0;
+}
+
+.logout-button {
+    appearance: none;
+    cursor: pointer;
+}
+
+/* =========================
    Laptop nhỏ: 4 cột
    ========================= */
 
@@ -684,6 +791,10 @@ input:focus-visible {
    ========================= */
 
 @media (max-width: 991px) {
+    .account-fullname {
+        max-width: 90px;
+    }
+
     .header-inner {
         grid-template-columns: 110px minmax(0, 1fr) auto;
         gap: 12px;
@@ -773,6 +884,29 @@ input:focus-visible {
    ========================= */
 
 @media (max-width: 575px) {
+    .auth-actions {
+        gap: 4px;
+    }
+
+    .auth-button {
+        padding: 6px 4px;
+        font-size: 12px;
+    }
+
+    .account-fullname {
+        max-width: 70px;
+    }
+
+    .account-trigger .icon {
+        display: none;
+    }
+
+    /* Logo dẫn về trang chủ; dành chỗ cho tài khoản và giỏ hàng. */
+
+    .header-nav > .nav-link[aria-current="page"] {
+        display: none;
+    }
+
     html {
         scroll-padding-top: 145px;
     }
@@ -943,6 +1077,7 @@ input:focus-visible {
 }
 
 /* Tôn trọng thiết lập giảm chuyển động của người dùng */
+
 @media (prefers-reduced-motion: reduce) {
     *,
     *::before,

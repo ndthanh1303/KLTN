@@ -188,13 +188,48 @@
                     </svg>
                     <span>Trang chủ</span>
                 </a>
+                {% if session.get("users_id") %}
+                    {# Đã đăng nhập: hiển thị họ tên lấy từ tài khoản. #}
+                    <details class="account-menu">
+                        <summary class="nav-link account-trigger"
+                                title="{{ session.get('ho_ten', '') }}">
+                            <svg class="icon" aria-hidden="true">
+                                <use href="#icon-user"/>
+                            </svg>
 
-                <a href="/register" class="nav-link">
-                    <svg class="icon">
-                        <use href="#icon-user"/>
-                    </svg>
-                    <span>Tài khoản</span>
-                </a>
+                            <strong class="account-fullname">
+                                {{ session["ho_ten"] }}
+                            </strong>
+                        </summary>
+
+                        <div class="account-dropdown">
+                            <span class="account-item">Thông tin tài khoản</span>
+                            <span class="account-item">Đơn mua</span>
+                            <form method="post"
+                                action="{{ url_for('dangxuat') }}"
+                                class="logout-form">
+                                {{ form_dangxuat.hidden_tag() }}
+
+                                <button type="submit" class="account-item logout-button">
+                                    Đăng xuất
+                                </button>
+                            </form>
+                        </div>
+                    </details>
+                {% else %}
+                    {# Chưa đăng nhập: hiển thị hai nút dẫn đến hai trang riêng. #}
+                    <div class="auth-actions">
+                        <a href="{{ url_for('dangnhap') }}" class="auth-button">
+                            Đăng nhập
+                        </a>
+
+                        <span aria-hidden="true">|</span>
+
+                        <a href="{{ url_for('dangky') }}" class="auth-button">
+                            Đăng ký
+                        </a>
+                    </div>
+                {% endif %}
             </nav>
 
         </div>

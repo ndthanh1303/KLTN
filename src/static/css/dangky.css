@@ -1,0 +1,59 @@
+/* CSS riêng cho dangky.html; không phụ thuộc home.css. */
+:root {
+    --primary: #0a68ff;
+    --text: #27272a;
+    --muted: #71717a;
+    --border: #ebebf0;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; min-height: 100vh; background: #f5f5fa; color: var(--text); font-family: Arial, Helvetica, sans-serif; font-size: 14px; line-height: 1.5; }
+a { color: var(--primary); text-decoration: none; }
+a:hover { text-decoration: underline; }
+button, input { font: inherit; }
+button, a, input { -webkit-tap-highlight-color: transparent; }
+button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid var(--primary); outline-offset: 3px; }
+
+.site-header { background: #fff; border-bottom: 1px solid var(--border); }
+.header-content { width: min(1120px, calc(100% - 40px)); min-height: 80px; margin: auto; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 12px; }
+.brand { display: flex; flex-direction: column; }
+.brand:hover { text-decoration: none; }
+.brand strong { font-size: 30px; line-height: 1.1; letter-spacing: -1px; }
+.brand span { margin-top: 4px; font-size: 12px; font-weight: 600; }
+.home-link { flex-shrink: 0; padding: 10px 0; font-weight: 600; }
+
+.auth-container { width: min(480px, calc(100% - 24px)); margin: 32px auto 48px; }
+.auth-card { padding: 28px; border: 1px solid var(--border); border-radius: 12px; background: #fff; box-shadow: 0 4px 24px rgb(39 39 42 / 4%); }
+.eyebrow { margin: 0 0 8px; color: var(--primary); font-size: 12px; font-weight: 700; }
+h1 { margin: 0 0 8px; font-size: 26px; line-height: 1.3; }
+.description { margin: 0 0 24px; color: var(--muted); }
+
+.form-field { margin-bottom: 18px; }
+.form-field > label { display: block; margin-bottom: 7px; font-weight: 600; }
+.form-input { width: 100%; min-height: 46px; padding: 10px 12px; border: 1px solid #d4d4d8; border-radius: 8px; background: #fff; color: var(--text); font-size: 16px; }
+.form-input::placeholder { color: #93939d; }
+.form-input:focus { border-color: var(--primary); }
+.form-input[aria-invalid="true"] { border-color: #b42318; }
+.field-hint { margin: 6px 0 0; color: var(--muted); font-size: 12px; }
+.field-error { margin: 6px 0 0; color: #b42318; font-size: 13px; overflow-wrap: anywhere; }
+.show-password { display: flex; align-items: center; gap: 8px; width: fit-content; min-height: 32px; margin: -2px 0 18px; cursor: pointer; }
+.show-password input { width: 17px; height: 17px; margin: 0; accent-color: var(--primary); cursor: pointer; }
+
+.submit-button { width: 100%; min-height: 46px; padding: 10px 16px; border: 0; border-radius: 8px; background: var(--primary); color: #fff; font-size: 16px; font-weight: 600; cursor: pointer; }
+.submit-button:hover { background: #0053d9; }
+.switch-page { margin: 22px 0 0; color: var(--muted); text-align: center; }
+.switch-page a { font-weight: 600; }
+.message { margin: 0 0 18px; padding: 12px; border: 1px solid #c5dcff; border-radius: 8px; background: #edf4ff; color: #0751c4; overflow-wrap: anywhere; }
+.message.success { border-color: #abefc6; background: #ecfdf3; color: #067647; }
+.message.error { border-color: #fecdca; background: #fff0ee; color: #b42318; }
+
+@media (max-width: 575px) {
+    .header-content { width: calc(100% - 24px); min-height: 72px; }
+    .brand strong { font-size: 26px; }
+    .brand span { font-size: 11px; }
+    .home-link { font-size: 13px; }
+    .auth-container { margin-top: 20px; margin-bottom: 28px; }
+    .auth-card { padding: 22px 20px; }
+    h1 { font-size: 23px; }
+}

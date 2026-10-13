@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng nhập | HCMUTE</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dangnhap.css') }}">
+</head>
+<body class="login-page">
+    {% set ve_gio_hang = request.args.get('next') == 'gio_hang' %}
+
+    <header class="site-header">
+        <div class="header-content">
+            <a class="brand" href="/" aria-label="HCMUTE — Trang chủ">
+                <strong>HCMUTE</strong>
+                <span>Thiết bị vệ sinh</span>
+            </a>
+            <a class="home-link" href="/">Về trang chủ</a>
+        </div>
+    </header>
+
+    <main class="auth-container">
+        <section class="auth-card" aria-labelledby="login-heading">
+            <p class="eyebrow">Tài khoản HCMUTE</p>
+            <h1 id="login-heading">Đăng nhập</h1>
+            <p class="description">
+                {% if ve_gio_hang %}Đăng nhập để xem giỏ hàng của bạn.
+                {% else %}Đăng nhập bằng email và mật khẩu đã đăng ký.{% endif %}
+            </p>
+
+            {% for category, message in get_flashed_messages(with_categories=true) %}
+                <p class="message {{ category }}" role="{{ 'status' if category == 'success' else 'alert' }}">{{ message }}</p>
+            {% endfor %}
+
+            {% if form.csrf_token is defined and form.csrf_token.errors %}
+                <p class="message error" role="alert">Phiên biểu mẫu không hợp lệ. Hãy tải lại trang và thử lại.</p>
+            {% endif %}
+
+            <form method="post" action="/dangnhap{% if ve_gio_hang %}?next=gio_hang{% endif %}" novalidate>
+                {{ form.hidden_tag() }}
+
+                <div class="form-field">
+                    {{ form.email.label }}
+                    {{ form.email(class='form-input', placeholder='Nhập địa chỉ email', autocomplete='username', inputmode='email', maxlength=150,
+                                  aria_invalid='true' if form.email.errors else 'false', aria_describedby='email-feedback') }}
+                    <div id="email-feedback">
+                        {% for error in form.email.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+                    </div>
+                </div>
+
+                <div class="form-field">
+                    {{ form.mat_khau.label }}
+                    {{ form.mat_khau(class='form-input', placeholder='Nhập mật khẩu', autocomplete='current-password', maxlength=128,
+                                     aria_invalid='true' if form.mat_khau.errors else 'false', aria_describedby='password-feedback') }}
+                    <div id="password-feedback">
+                        {% for error in form.mat_khau.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+                    </div>
+                </div>
+
+                <label class="show-password" id="show-password-row" hidden>
+                    <input type="checkbox" id="show-password" aria-controls="mat_khau">
+                    <span>Hiện mật khẩu</span>
+                </label>
+
+                <button class="submit-button" type="submit">Đăng nhập</button>
+            </form>
+
+            <p class="switch-page">Chưa có tài khoản?
+                <a href="/register{% if ve_gio_hang %}?next=gio_hang{% endif %}">Đăng ký ngay</a>
+            </p>
+        </section>
+    </main>
+
+    <script>
+        const checkbox = document.getElementById('show-password');
+        const password = document.getElementById('mat_khau');
+        document.getElementById('show-password-row').hidden = false;
+        checkbox.addEventListener('change', () => {
+            password.type = checkbox.checked ? 'text' : 'password';
+        });
+    </script>
+</body>
+</html>
