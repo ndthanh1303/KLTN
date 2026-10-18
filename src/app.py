@@ -10,7 +10,7 @@ from flask import Flask, flash, redirect, render_template, url_for
 # )
 
 # db.py đọc .env khi được import.
-from db import get_db_connection, lay_du_lieu_trang_chu
+from db import get_db_connection, lay_du_lieu_trang_chu, lay_chi_tiet_san_pham
 
 
 from flask import (
@@ -117,6 +117,13 @@ def dangxuat():
     flash("Bạn đã đăng xuất.", "success")
 
     return redirect(url_for("dangnhap"))  # Chuyển tới trang đăng nhập.
+
+@app.route("/san-pham/<int:san_pham_id>")
+def chi_tiet_san_pham(san_pham_id):
+    san_pham = lay_chi_tiet_san_pham(san_pham_id)
+    if san_pham is None:
+        abort(404)  # ID không tồn tại trong database.
+    return render_template("chi_tiet_san_pham.html", san_pham=san_pham)
 
 if __name__ == "__main__":
     app.run(debug=True)

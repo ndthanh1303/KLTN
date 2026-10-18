@@ -112,3 +112,44 @@ def lay_du_lieu_trang_chu():
 
     finally:
         connection.close()
+
+
+def lay_chi_tiet_san_pham(san_pham_id):
+    """Lấy một sản phẩm và toàn bộ ảnh; trả None nếu không tìm thấy."""
+    connection = get_db_connection()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT
+                    sp.san_pham_id, sp.danh_muc_id, sp.thuong_hieu_id,
+                    sp.ma_san_pham, sp.ten_san_pham, sp.mo_ta,
+                    sp.gia, sp.gia_khuyen_mai, sp.so_luong_ton,
+                    dm.ten_danh_muc, th.ten_thuong_hieu
+                FROM san_pham AS sp
+                JOIN danh_muc AS dm
+                    ON dm.danh_muc_id = sp.danh_muc_id
+                LEFT JOIN thuong_hieu AS th
+                    ON th.thuong_hieu_id = sp.thuong_hieu_id
+                WHERE sp.san_pham_id = %s
+                LIMIT 1
+                """,
+                (san_pham_id,),  # Truyền tham số riêng, không ghép chuỗi SQL.
+            )
+            san_pham = cursor.fetchone()
+            if san_pham is None:
+                return None
+
+            cursor.execute(
+                """
+                SELECT hinh_anh_id, url_anh, anh_dai_dien
+                FROM hinh_anh_san_pham
+                WHERE san_pham_id = %s AND url_anh <> ''
+                ORDER BY anh_dai_dien DESC, hinh_anh_id ASC
+                """,
+                (san_pham_id,),
+            )
+            san_pham["hinh_anh"] = list(cursor.fetchall())
+            return san_pham
+    finally:
+        connection.close()

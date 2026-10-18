@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ san_pham["ten_san_pham"] }} | HCMUTE</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/chi_tiet_san_pham.css') }}">
+</head>
+<body>
+    {% set hinh_anh = san_pham["hinh_anh"] %}
+    {% set gia = san_pham["gia"] %}
+    {% set gia_km = san_pham["gia_khuyen_mai"] %}
+    {% set dang_giam_gia = gia_km is not none and gia_km >= 0 and gia_km < gia %}
+
+    {# Giữ kiểu Decimal của MySQL khi định dạng tiền. #}
+    {% macro tien_viet(so_tien) -%}
+        {{ "{:,.0f}".format(so_tien).replace(",", ".") }} đ
+    {%- endmacro %}
+
+    <svg class="svg-definitions" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <symbol id="icon-search" viewBox="0 0 24 24">
+            <circle cx="10.5" cy="10.5" r="6.5"/>
+            <path d="m16 16 5 5"/>
+        </symbol>
+        <symbol id="icon-home" viewBox="0 0 24 24">
+            <path d="m3 10 9-7 9 7M5 9v12h5v-7h4v7h5V9"/>
+        </symbol>
+        <symbol id="icon-user" viewBox="0 0 24 24">
+            <circle cx="12" cy="7" r="4"/>
+            <path d="M4 21v-2a8 8 0 0 1 16 0v2"/>
+        </symbol>
+    </svg>
+
+    <a href="#main-content" class="skip-link">Chuyển đến nội dung chính</a>
+
+    <header class="site-header">
+        <div class="container header-inner">
+            <a href="{{ url_for('trang_chu') }}" class="site-brand" aria-label="Về trang chủ">
+                <span class="brand-mark">HCMUTE</span>
+                <span class="brand-caption">Thiết bị vệ sinh</span>
+            </a>
+
+            <form class="search-form" method="get" action="{{ url_for('trang_chu') }}" role="search">
+                <label class="sr-only" for="detail-search-input">Tìm theo tên hoặc mã sản phẩm</label>
+                <svg class="icon" aria-hidden="true"><use href="#icon-search"/></svg>
+                <input id="detail-search-input" name="q" type="search"
+                       placeholder="Tìm theo tên hoặc mã sản phẩm"
+                       autocomplete="off" maxlength="150">
+                <button type="submit">Tìm kiếm</button>
+            </form>
+
+            <nav class="header-nav" aria-label="Điều hướng chính">
+                <a href="{{ url_for('trang_chu') }}" class="nav-link detail-home-link" title="Trang chủ">
+                    <svg class="icon" aria-hidden="true"><use href="#icon-home"/></svg>
+                    <span>Trang chủ</span>
+                </a>
+
+                {% if session.get("users_id") %}
+                    <details class="account-menu">
+                        <summary class="nav-link account-trigger" title="{{ session.get('ho_ten', '') }}">
+                            <svg class="icon" aria-hidden="true"><use href="#icon-user"/></svg>
+                            <strong class="account-fullname">{{ session.get("ho_ten", "Tài khoản") }}</strong>
+                        </summary>
+                        <div class="account-dropdown">
+                            <span class="account-item">Thông tin tài khoản</span>
+                            <span class="account-item">Đơn mua</span>
+                            <form method="post" action="{{ url_for('dangxuat') }}" class="logout-form">
+                                {{ form_dangxuat.hidden_tag() }}
+                                <button type="submit" class="account-item logout-button">Đăng xuất</button>
+                            </form>
+                        </div>
+                    </details>
+                {% else %}
+                    <div class="auth-actions">
+                        <a href="{{ url_for('dangnhap') }}" class="auth-button">Đăng nhập</a>
+                        <span aria-hidden="true">|</span>
+                        <a href="{{ url_for('dangky') }}" class="auth-button">Đăng ký</a>
+                    </div>
+                {% endif %}
+            </nav>
+        </div>
+    </header>
+
+    <main id="main-content" class="container detail-page">
+        <nav class="detail-breadcrumb" aria-label="Đường dẫn">
+            <ol>
+                <li><a href="{{ url_for('trang_chu') }}">Trang chủ</a></li>
+                {% if san_pham["ten_danh_muc"] %}
+                    <li>{{ san_pham["ten_danh_muc"] }}</li>
+                {% endif %}
+                <li aria-current="page">{{ san_pham["ten_san_pham"] }}</li>
+            </ol>
+        </nav>
+
+        <div class="detail-layout">
+            <section class="detail-gallery detail-panel" aria-label="Hình ảnh sản phẩm">
+                <div class="detail-image-stage">
+                    {% if hinh_anh %}
+                        <img id="detail-main-image" class="detail-main-image"
+                             src="{{ hinh_anh[0]['url_anh'] }}"
+                             alt="{{ san_pham['ten_san_pham'] }} — Ảnh 1"
+                             width="720" height="720" decoding="async">
+                        <p id="detail-image-fallback" class="detail-image-placeholder" hidden>
+                            Không thể tải hình ảnh.
+                        </p>
+                    {% else %}
+                        <p class="detail-image-placeholder">Chưa có hình ảnh</p>
+                    {% endif %}
+                </div>
+
+                {% if hinh_anh | length > 1 %}
+                    <div class="detail-thumbnails" role="group" aria-label="Chọn ảnh sản phẩm">
+                        {% for anh in hinh_anh %}
+                            <button type="button"
+                                    class="detail-thumbnail{% if loop.first %} is-active{% endif %}"
+                                    aria-label="Xem ảnh {{ loop.index }}"
+                                    aria-pressed="{{ 'true' if loop.first else 'false' }}"
+                                    data-image-src="{{ anh['url_anh'] }}"
+                                    data-image-alt="{{ san_pham['ten_san_pham'] }} — Ảnh {{ loop.index }}">
+                                <img src="{{ anh['url_anh'] }}" alt="" width="64" height="64"
+                                     loading="lazy" decoding="async">
+                            </button>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </section>
+
+            <section class="detail-summary detail-panel" aria-labelledby="detail-title">
+                {% if san_pham["ten_thuong_hieu"] %}
+                    <p class="detail-brand">Thương hiệu: <strong>{{ san_pham["ten_thuong_hieu"] }}</strong></p>
+                {% endif %}
+                <h1 id="detail-title">{{ san_pham["ten_san_pham"] }}</h1>
+
+                <div class="detail-price-panel">
+                    <p class="detail-price-label">Giá bán</p>
+                    <strong class="detail-price">{{ tien_viet(gia_km if dang_giam_gia else gia) }}</strong>
+                    {% if dang_giam_gia %}
+                        <div class="detail-discount-line">
+                            <del>{{ tien_viet(gia) }}</del>
+                            {% set phan_tram = ((gia - gia_km) / gia * 100) | int %}
+                            {% if phan_tram > 0 %}
+                                <span class="detail-discount">-{{ phan_tram }}%</span>
+                            {% endif %}
+                        </div>
+                        <p class="detail-savings">Tiết kiệm {{ tien_viet(gia - gia_km) }}</p>
+                    {% endif %}
+                </div>
+
+                {% if san_pham["so_luong_ton"] > 0 %}
+                    <p class="detail-stock is-available">Còn hàng · {{ san_pham["so_luong_ton"] }} sản phẩm</p>
+                {% else %}
+                    <p class="detail-stock is-unavailable">Hết hàng</p>
+                {% endif %}
+
+                <h2 class="detail-info-heading">Thông tin sản phẩm</h2>
+                <dl class="detail-specs">
+                    <dt>Mã sản phẩm</dt>
+                    <dd>{{ san_pham["ma_san_pham"] }}</dd>
+                    {% if san_pham["ten_danh_muc"] %}
+                        <dt>Danh mục</dt>
+                        <dd>{{ san_pham["ten_danh_muc"] }}</dd>
+                    {% endif %}
+                </dl>
+                <a href="{{ url_for('trang_chu') }}#catalog-section" class="detail-browse-link">
+                    Xem thêm sản phẩm
+                </a>
+            </section>
+        </div>
+
+        {% if san_pham["mo_ta"] and san_pham["mo_ta"] | trim %}
+            <section class="detail-description detail-panel" aria-labelledby="detail-description-heading">
+                <h2 id="detail-description-heading">Mô tả sản phẩm</h2>
+                {# Hiển thị văn bản từ database; Jinja tự escape nội dung. #}
+                <div class="detail-description-content">{{ san_pham["mo_ta"] }}</div>
+            </section>
+        {% endif %}
+    </main>
+
+    <footer class="site-footer">
+        <div class="container footer-inner">
+            <div>
+                <p class="footer-title">HCMUTE</p>
+                <p>Thiết bị vệ sinh và phụ kiện phòng tắm</p>
+            </div>
+            <p>Khóa luận tốt nghiệp — HCMUTE</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const mainImage = document.getElementById("detail-main-image");
+            const fallback = document.getElementById("detail-image-fallback");
+            const thumbnails = Array.from(document.querySelectorAll("[data-image-src]"));
+
+            if (!mainImage || !fallback) {
+                return;
+            }
+
+            function showImageError() {
+                mainImage.hidden = true;
+                fallback.hidden = false;
+            }
+
+            mainImage.addEventListener("error", showImageError);
+            mainImage.addEventListener("load", function () {
+                mainImage.hidden = false;
+                fallback.hidden = true;
+            });
+
+            if (mainImage.complete && mainImage.naturalWidth === 0) {
+                showImageError();
+            }
+
+            thumbnails.forEach(function (button) {
+                button.addEventListener("click", function () {
+                    mainImage.hidden = false;
+                    fallback.hidden = true;
+                    mainImage.alt = button.dataset.imageAlt;
+                    mainImage.src = button.dataset.imageSrc;
+
+                    thumbnails.forEach(function (item) {
+                        const selected = item === button;
+                        item.classList.toggle("is-active", selected);
+                        item.setAttribute("aria-pressed", String(selected));
+                    });
+                });
+            });
+        });
+    </script>
+</body>
+</html>

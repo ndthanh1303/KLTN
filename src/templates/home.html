@@ -56,58 +56,62 @@
             data-category="{{ sp['danh_muc_id'] }}"
             data-brand="{{ sp['thuong_hieu_id'] or '' }}"
         >
-            <div class="product-image">
-                {% if sp["url_anh"] %}
-                    <img
-                        src="{{ sp['url_anh'] }}"
-                        alt="{{ sp['ten_san_pham'] }}"
-                        loading="lazy"
-                        decoding="async"
-                    >
-                {% else %}
-                    <span class="image-placeholder">
-                        Chưa có hình ảnh
-                    </span>
-                {% endif %}
-
-                {% if dang_giam_gia %}
-                    {% set phan_tram = (
-                        (gia - gia_km) / gia * 100
-                    ) | round(0, "floor") | int %}
-
-                    <span class="discount-badge">
-                        -{{ phan_tram }}%
-                    </span>
-                {% endif %}
-            </div>
-
-            <div class="product-info">
-                <p class="product-code">
-                    {{ sp["ma_san_pham"] }}
-                </p>
-
-                <h3 class="product-name">
-                    {{ sp["ten_san_pham"] }}
-                </h3>
-
-                <div class="product-prices">
-                    <strong class="current-price">
-                        {{ tien_viet(gia_km if dang_giam_gia else gia) }}
-                    </strong>
+            <a class="product-link"
+                href="{{ url_for('chi_tiet_san_pham', san_pham_id=sp['san_pham_id']) }}"
+                aria-label="Xem chi tiết {{ sp['ten_san_pham'] }}">
+                <div class="product-image">
+                    {% if sp["url_anh"] %}
+                        <img
+                            src="{{ sp['url_anh'] }}"
+                            alt="{{ sp['ten_san_pham'] }}"
+                            loading="lazy"
+                            decoding="async"
+                        >
+                    {% else %}
+                        <span class="image-placeholder">
+                            Chưa có hình ảnh
+                        </span>
+                    {% endif %}
 
                     {% if dang_giam_gia %}
-                        <del class="original-price">
-                            {{ tien_viet(gia) }}
-                        </del>
+                        {% set phan_tram = (
+                            (gia - gia_km) / gia * 100
+                        ) | round(0, "floor") | int %}
+
+                        <span class="discount-badge">
+                            -{{ phan_tram }}%
+                        </span>
                     {% endif %}
                 </div>
 
-                {% if sp["so_luong_ton"] > 0 %}
-                    <p class="stock-status in-stock">Còn hàng</p>
-                {% else %}
-                    <p class="stock-status out-of-stock">Hết hàng</p>
-                {% endif %}
-            </div>
+                <div class="product-info">
+                    <p class="product-code">
+                        {{ sp["ma_san_pham"] }}
+                    </p>
+
+                    <h3 class="product-name">
+                        {{ sp["ten_san_pham"] }}
+                    </h3>
+
+                    <div class="product-prices">
+                        <strong class="current-price">
+                            {{ tien_viet(gia_km if dang_giam_gia else gia) }}
+                        </strong>
+
+                        {% if dang_giam_gia %}
+                            <del class="original-price">
+                                {{ tien_viet(gia) }}
+                            </del>
+                        {% endif %}
+                    </div>
+
+                    {% if sp["so_luong_ton"] > 0 %}
+                        <p class="stock-status in-stock">Còn hàng</p>
+                    {% else %}
+                        <p class="stock-status out-of-stock">Hết hàng</p>
+                    {% endif %}
+                </div>
+            </a>
         </article>
     {% endmacro %}
 
@@ -168,6 +172,8 @@
 
                 <input
                     id="search-input"
+                    name="q"
+                    value="{{ request.args.get('q', '') }}" 
                     type="search"
                     placeholder="Tìm theo tên hoặc mã sản phẩm"
                     autocomplete="off"
@@ -593,6 +599,10 @@
                     brandId = "";
                     filterProducts();
                 });
+            }
+
+            if (searchInput.value.trim()) {
+                filterProducts();
             }
         });
     </script>

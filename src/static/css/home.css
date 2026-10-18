@@ -497,6 +497,18 @@ input:focus-visible {
    Thẻ sản phẩm
    ========================= */
 
+.product-link {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+    border-radius: inherit;
+}
+
+.product-link:focus-visible {
+    outline-offset: -3px;
+}
+
 .product-card {
     display: flex;
     flex-direction: column;
