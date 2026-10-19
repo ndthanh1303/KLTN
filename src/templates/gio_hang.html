@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Giỏ hàng | HCMUTE</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/gio_hang.css') }}">
+</head>
+<body>
+    {# Tiền đã được tính ở backend bằng Decimal. #}
+    {% macro tien_viet(so_tien) -%}
+        {{ "{:,.0f}".format(so_tien).replace(",", ".") }} đ
+    {%- endmacro %}
+
+    <svg class="svg-definitions" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <symbol id="icon-search" viewBox="0 0 24 24">
+            <circle cx="10.5" cy="10.5" r="6.5"/>
+            <path d="m16 16 5 5"/>
+        </symbol>
+        <symbol id="icon-home" viewBox="0 0 24 24">
+            <path d="m3 10 9-7 9 7M5 9v12h5v-7h4v7h5V9"/>
+        </symbol>
+        <symbol id="icon-user" viewBox="0 0 24 24">
+            <circle cx="12" cy="7" r="4"/>
+            <path d="M4 21v-2a8 8 0 0 1 16 0v2"/>
+        </symbol>
+    </svg>
+
+    <a href="#main-content" class="skip-link">Chuyển đến nội dung chính</a>
+
+    <header class="site-header">
+        <div class="container header-inner">
+            <a href="{{ url_for('trang_chu') }}" class="site-brand" aria-label="Về trang chủ">
+                <span class="brand-mark">HCMUTE</span>
+                <span class="brand-caption">Thiết bị vệ sinh</span>
+            </a>
+
+            <form class="search-form" method="get" action="{{ url_for('trang_chu') }}" role="search">
+                <label class="sr-only" for="cart-search-input">Tìm theo tên hoặc mã sản phẩm</label>
+                <svg class="icon" aria-hidden="true"><use href="#icon-search"/></svg>
+                <input id="cart-search-input" name="q" type="search"
+                       placeholder="Tìm theo tên hoặc mã sản phẩm"
+                       autocomplete="off" maxlength="150">
+                <button type="submit">Tìm kiếm</button>
+            </form>
+
+            <nav class="header-nav" aria-label="Điều hướng chính">
+                <a href="{{ url_for('trang_chu') }}" class="nav-link cart-home-link" title="Trang chủ">
+                    <svg class="icon" aria-hidden="true"><use href="#icon-home"/></svg>
+                    <span>Trang chủ</span>
+                </a>
+
+                <details class="account-menu">
+                    <summary class="nav-link account-trigger" title="{{ session.get('ho_ten', '') }}">
+                        <svg class="icon" aria-hidden="true"><use href="#icon-user"/></svg>
+                        <strong class="account-fullname">{{ session.get("ho_ten", "Tài khoản") }}</strong>
+                    </summary>
+                    <div class="account-dropdown">
+                        <span class="account-item">Thông tin tài khoản</span>
+                        <span class="account-item">Đơn mua</span>
+                        <form method="post" action="{{ url_for('dangxuat') }}" class="logout-form">
+                            {{ form_dangxuat.hidden_tag() }}
+                            <button type="submit" class="account-item logout-button">Đăng xuất</button>
+                        </form>
+                    </div>
+                </details>
+
+                <a href="{{ url_for('gio_hang') }}" class="nav-link cart-header-link active"
+                   aria-label="Giỏ hàng" aria-current="page" title="Giỏ hàng">
+                    <img src="{{ url_for('static', filename='images/icon-gio-hang.png') }}"
+                         class="cart-header-icon" alt="" width="24" height="24">
+                    <span>Giỏ hàng</span>
+                </a>
+            </nav>
+        </div>
+    </header>
+
+    <main id="main-content" class="container cart-page">
+        <nav class="cart-breadcrumb" aria-label="Đường dẫn">
+            <a href="{{ url_for('trang_chu') }}">Trang chủ</a>
+            <span aria-hidden="true">/</span>
+            <span aria-current="page">Giỏ hàng</span>
+        </nav>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, message in messages %}
+                <p class="cart-message" role="status">{{ message }}</p>
+            {% endfor %}
+        {% endwith %}
+
+        <div class="cart-heading">
+            <h1>Giỏ hàng</h1>
+            <p>{{ gio_hang["tong_so_luong"] }} sản phẩm</p>
+        </div>
+
+        {% if gio_hang["san_pham"] %}
+            <div class="cart-layout">
+                <section class="cart-panel cart-products" aria-labelledby="cart-products-heading">
+                    <h2 id="cart-products-heading" class="sr-only">Sản phẩm trong giỏ hàng</h2>
+                    <div class="cart-column-headings" aria-hidden="true">
+                        <span>Sản phẩm</span>
+                        <span>Đơn giá</span>
+                        <span>Số lượng</span>
+                        <span>Thành tiền</span>
+                    </div>
+
+                    <ul class="cart-items">
+                        {% for sp in gio_hang["san_pham"] %}
+                            <li class="cart-item">
+                                <a href="{{ url_for('chi_tiet_san_pham', san_pham_id=sp['san_pham_id']) }}"
+                                   class="cart-product">
+                                    <div class="cart-product-image">
+                                        {% if sp["url_anh"] %}
+                                            <img src="{{ sp['url_anh'] }}" alt=""
+                                                 width="88" height="88" loading="lazy" decoding="async">
+                                        {% else %}
+                                            <span>Chưa có ảnh</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="cart-product-info">
+                                        <h3>{{ sp["ten_san_pham"] }}</h3>
+                                        <p class="cart-product-code">Mã: {{ sp["ma_san_pham"] }}</p>
+                                        {% if sp["so_luong_ton"] <= 0 %}
+                                            <p class="cart-stock-warning">Sản phẩm hiện đã hết hàng.</p>
+                                        {% elif sp["so_luong"] > sp["so_luong_ton"] %}
+                                            <p class="cart-stock-warning">Hiện chỉ còn {{ sp["so_luong_ton"] }} sản phẩm.</p>
+                                        {% endif %}
+                                    </div>
+                                </a>
+
+                                <div class="cart-unit-price">
+                                    <span class="cart-mobile-label">Đơn giá</span>
+                                    <strong>{{ tien_viet(sp["gia_ban"]) }}</strong>
+                                    {% if sp["gia_ban"] < sp["gia"] %}
+                                        <del>{{ tien_viet(sp["gia"]) }}</del>
+                                    {% endif %}
+                                </div>
+                                <div class="cart-quantity">
+                                    <span class="cart-mobile-label">Số lượng</span>
+                                    <span>{{ sp["so_luong"] }}</span>
+                                </div>
+                                <div class="cart-line-total">
+                                    <span class="cart-mobile-label">Thành tiền</span>
+                                    <strong>{{ tien_viet(sp["thanh_tien"]) }}</strong>
+                                </div>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </section>
+
+                <aside class="cart-panel cart-summary" aria-labelledby="cart-summary-heading">
+                    <h2 id="cart-summary-heading">Thông tin giỏ hàng</h2>
+                    <div class="cart-summary-row">
+                        <span>Tổng số lượng</span>
+                        <strong>{{ gio_hang["tong_so_luong"] }}</strong>
+                    </div>
+                    <div class="cart-summary-total">
+                        <span>Tạm tính tiền sản phẩm</span>
+                        <strong>{{ tien_viet(gio_hang["tong_tien"]) }}</strong>
+                    </div>
+                    <a href="{{ url_for('trang_chu') }}#catalog-section" class="cart-continue-link">
+                        Tiếp tục mua sắm
+                    </a>
+                </aside>
+            </div>
+        {% else %}
+            <section class="cart-panel cart-empty" aria-labelledby="cart-empty-heading">
+                <img src="{{ url_for('static', filename='images/icon-gio-hang.png') }}"
+                     alt="" width="64" height="64" class="cart-empty-icon">
+                <h2 id="cart-empty-heading">Giỏ hàng của bạn đang trống</h2>
+                <p>Khám phá các sản phẩm dành cho không gian phòng tắm của bạn.</p>
+                <a href="{{ url_for('trang_chu') }}#catalog-section" class="cart-continue-link">
+                    Khám phá sản phẩm
+                </a>
+            </section>
+        {% endif %}
+    </main>
+
+    <footer class="site-footer">
+        <div class="container footer-inner">
+            <div>
+                <p class="footer-title">HCMUTE</p>
+                <p>Thiết bị vệ sinh và phụ kiện phòng tắm</p>
+            </div>
+            <p>Khóa luận tốt nghiệp — HCMUTE</p>
+        </div>
+    </footer>
+</body>
+</html>

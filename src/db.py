@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-
+from decimal import Decimal
 import pymysql
 from dotenv import load_dotenv
 
@@ -151,5 +151,64 @@ def lay_chi_tiet_san_pham(san_pham_id):
             )
             san_pham["hinh_anh"] = list(cursor.fetchall())
             return san_pham
+    finally:
+        connection.close()
+
+
+def lay_gio_hang(users_id):
+    """Đọc giỏ hàng của một tài khoản và tính tiền bằng Decimal."""
+    connection = get_db_connection()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT
+                    ctgh.chi_tiet_gio_hang_id,
+                    ctgh.so_luong,
+                    sp.san_pham_id,
+                    sp.ma_san_pham,
+                    sp.ten_san_pham,
+                    sp.gia,
+                    sp.gia_khuyen_mai,
+                    sp.so_luong_ton,
+                    (
+                        SELECT ha.url_anh
+                        FROM hinh_anh_san_pham AS ha
+                        WHERE ha.san_pham_id = sp.san_pham_id
+                            AND ha.url_anh <> ''
+                        ORDER BY ha.anh_dai_dien DESC, ha.hinh_anh_id ASC
+                        LIMIT 1
+                    ) AS url_anh
+                FROM gio_hang AS gh
+                JOIN chi_tiet_gio_hang AS ctgh
+                    ON ctgh.gio_hang_id = gh.gio_hang_id
+                JOIN san_pham AS sp
+                    ON sp.san_pham_id = ctgh.san_pham_id
+                WHERE gh.users_id = %s
+                ORDER BY ctgh.created_at DESC, ctgh.chi_tiet_gio_hang_id DESC
+                """,
+                (users_id,),  # Luôn lọc theo tài khoản lấy từ session.
+            )
+            san_pham = list(cursor.fetchall())
+
+        tong_so_luong = 0
+        tong_tien = Decimal("0")
+
+        for sp in san_pham:
+            gia_km = sp["gia_khuyen_mai"]
+            # Áp dụng cùng quy tắc giá khuyến mãi với trang chi tiết.
+            dang_giam_gia = (
+                gia_km is not None and 0 <= gia_km < sp["gia"]
+            )
+            sp["gia_ban"] = gia_km if dang_giam_gia else sp["gia"]
+            sp["thanh_tien"] = sp["gia_ban"] * sp["so_luong"]
+            tong_so_luong += sp["so_luong"]
+            tong_tien += sp["thanh_tien"]
+
+        return {
+            "san_pham": san_pham,
+            "tong_so_luong": tong_so_luong,
+            "tong_tien": tong_tien,
+        }
     finally:
         connection.close()

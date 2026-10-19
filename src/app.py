@@ -10,7 +10,7 @@ from flask import Flask, flash, redirect, render_template, url_for
 # )
 
 # db.py đọc .env khi được import.
-from db import get_db_connection, lay_du_lieu_trang_chu, lay_chi_tiet_san_pham
+from db import get_db_connection, lay_du_lieu_trang_chu, lay_chi_tiet_san_pham, lay_gio_hang
 
 
 from flask import (
@@ -42,7 +42,7 @@ def trang_chu():
 def dich_den_sau_dang_nhap():
     """Chỉ cho chuyển về trang chủ hoặc URL giỏ hàng của hệ thống."""
     if request.args.get("next") == "gio_hang":
-        return "/gio-hang"
+        return url_for("gio_hang")
     return url_for("trang_chu")
 
 @app.route("/dangky", methods=["GET", "POST"])
@@ -124,6 +124,20 @@ def chi_tiet_san_pham(san_pham_id):
     if san_pham is None:
         abort(404)  # ID không tồn tại trong database.
     return render_template("chi_tiet_san_pham.html", san_pham=san_pham)
+
+@app.route("/gio-hang")
+def gio_hang():
+    users_id = session.get("users_id")
+    if not users_id:
+        return redirect(url_for("dangnhap", next="gio_hang"))
+
+    try:
+        du_lieu_gio_hang = lay_gio_hang(users_id)
+    except pymysql.MySQLError:
+        app.logger.exception("Lỗi database khi tải giỏ hàng.")
+        abort(503, description="Không thể tải giỏ hàng. Vui lòng thử lại sau.")
+
+    return render_template("gio_hang.html", gio_hang=du_lieu_gio_hang)
 
 if __name__ == "__main__":
     app.run(debug=True)

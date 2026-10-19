@@ -78,6 +78,14 @@
                         <a href="{{ url_for('dangky') }}" class="auth-button">Đăng ký</a>
                     </div>
                 {% endif %}
+
+                <a href="{{ url_for('gio_hang') }}"
+                class="nav-link cart-header-link"
+                aria-label="Giỏ hàng" title="Giỏ hàng">
+                    <img src="{{ url_for('static', filename='images/icon-gio-hang.png') }}"
+                        class="cart-header-icon" alt="" width="24" height="24">
+                    <span>Giỏ hàng</span>
+                </a>                
             </nav>
         </div>
     </header>

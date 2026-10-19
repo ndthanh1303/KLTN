@@ -915,7 +915,7 @@ input:focus-visible {
 
     /* Logo dẫn về trang chủ; dành chỗ cho tài khoản và giỏ hàng. */
 
-    .header-nav > .nav-link[aria-current="page"] {
+    .header-nav > .nav-link[aria-current="page"]:not(.cart-header-link) {
         display: none;
     }
 
@@ -972,6 +972,18 @@ input:focus-visible {
     .search-form button {
         padding-inline: 12px;
         font-size: 13px;
+    }
+
+    .cart-header-link {
+        flex-shrink: 0;
+    }
+
+    .cart-header-icon {
+        display: block;
+        flex-shrink: 0;
+        width: 24px;
+        height: 24px;
+        object-fit: contain;
     }
 
     .header-description {
