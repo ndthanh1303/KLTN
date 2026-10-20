@@ -8,6 +8,7 @@
 </head>
 <body class="register-page">
     {% set ve_gio_hang = request.args.get('next') == 'gio_hang' %}
+    {% set next_hop_le = request.args.get('next') if request.args.get('next') in ['gio_hang', 'dat_hang', 'don_mua', 'mua_hang'] else none %}
 
     <header class="site-header">
         <div class="header-content">
@@ -33,7 +34,7 @@
                 <p class="message error" role="alert">Phiên biểu mẫu không hợp lệ. Hãy tải lại trang và thử lại.</p>
             {% endif %}
 
-            <form method="post" action="/dangky{% if ve_gio_hang %}?next=gio_hang{% endif %}" novalidate>
+            <form method="post" action="{{ url_for('dangky', next=next_hop_le) }}" novalidate>
                 {{ form.hidden_tag() }}
 
                 <div class="form-field">
@@ -91,7 +92,7 @@
             </form>
 
             <p class="switch-page">Đã có tài khoản?
-                <a href="/dangnhap{% if ve_gio_hang %}?next=gio_hang{% endif %}">Đăng nhập</a>
+                <a href="{{ url_for('dangnhap', next=next_hop_le) }}">Đăng nhập</a>
             </p>
         </section>
     </main>

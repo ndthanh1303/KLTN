@@ -1,0 +1,69 @@
+{% extends "mua_hang_base.html" %}
+{% block title %}Đặt hàng{% endblock %}
+{% block breadcrumb %}<span aria-current="page">Đặt hàng</span>{% endblock %}
+
+{% macro truong_nhap(field, autocomplete="off", placeholder="") %}
+    <div class="shop-field{% if field.errors %} has-error{% endif %}">
+        {{ field.label }}
+        {{ field(class="shop-input", autocomplete=autocomplete, placeholder=placeholder,
+                 aria_invalid="true" if field.errors else "false", aria_describedby=field.id ~ "-errors") }}
+        <div id="{{ field.id }}-errors">
+            {% for error in field.errors %}<p class="shop-field-error">{{ error }}</p>{% endfor %}
+        </div>
+    </div>
+{% endmacro %}
+
+{% block content %}
+    <div class="shop-heading"><h1>Đặt hàng</h1><p>Kiểm tra sản phẩm và thông tin nhận hàng</p></div>
+    <form method="post" action="{{ url_for('dat_hang') }}" class="shop-checkout-layout" data-order-form novalidate>
+        {{ form.hidden_tag() }}
+        <div class="shop-checkout-main">
+            <section class="shop-panel">
+                <h2>Địa chỉ nhận hàng</h2>
+                <div class="shop-field-grid">
+                    {{ truong_nhap(form.ten_nguoi_nhan, "name", "Họ tên người nhận") }}
+                    {{ truong_nhap(form.so_dien_thoai, "tel", "Số điện thoại liên hệ") }}
+                    {{ truong_nhap(form.tinh_thanh, "address-level1", "Tỉnh / Thành phố") }}
+                    {{ truong_nhap(form.phuong_xa, "address-level2", "Phường / Xã") }}
+                </div>
+                {{ truong_nhap(form.dia_chi_chi_tiet, "street-address", "Số nhà, tên đường, tòa nhà…") }}
+                {{ truong_nhap(form.ghi_chu, "off", "Ghi chú cho cửa hàng (không bắt buộc)") }}
+            </section>
+            <section class="shop-panel">
+                <h2>Sản phẩm đặt mua <span class="shop-muted">({{ dat_hang["tong_so_luong"] }})</span></h2>
+                <ul class="shop-checkout-items">
+                    {% for sp in dat_hang["san_pham"] %}
+                        <li class="shop-checkout-item">
+                            <a href="{{ url_for('chi_tiet_san_pham', san_pham_id=sp['san_pham_id']) }}" class="shop-checkout-product">
+                                <div class="shop-product-image">
+                                    {% if sp["url_anh"] %}<img src="{{ sp['url_anh'] }}" alt="" width="64" height="64" loading="lazy">
+                                    {% else %}<span>Chưa có ảnh</span>{% endif %}
+                                </div>
+                                <div><strong>{{ sp["ten_san_pham"] }}</strong><p>{{ tien_viet(sp["gia_ban"]) }} × {{ sp["so_luong"] }}</p></div>
+                            </a>
+                            <strong>{{ tien_viet(sp["thanh_tien"]) }}</strong>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </section>
+            <section class="shop-panel">
+                <h2>Phương thức thanh toán</h2>
+                {% for option in form.phuong_thuc_thanh_toan %}
+                    <label class="shop-payment-option">{{ option() }}<span>{{ option.label.text }}</span></label>
+                {% endfor %}
+                {% for error in form.phuong_thuc_thanh_toan.errors %}<p class="shop-field-error">{{ error }}</p>{% endfor %}
+            </section>
+        </div>
+        <aside class="shop-panel shop-order-summary">
+            <h2>Thông tin thanh toán</h2>
+            <dl class="shop-totals">
+                <div><dt>Tiền sản phẩm</dt><dd>{{ tien_viet(dat_hang["tam_tinh"]) }}</dd></div>
+                <div><dt>Phí vận chuyển</dt><dd>{{ tien_viet(dat_hang["phi_van_chuyen"]) }}</dd></div>
+                <div class="shop-grand-total"><dt>Tổng thanh toán</dt><dd>{{ tien_viet(dat_hang["tong_tien"]) }}</dd></div>
+            </dl>
+            <button type="submit" class="shop-button shop-primary shop-full-width" data-order-submit>Đặt hàng</button>
+            <p class="shop-order-note">Thanh toán khi nhận hàng. Vui lòng kiểm tra địa chỉ và số điện thoại trước khi đặt.</p>
+            <a href="{{ url_for('gio_hang') }}" class="shop-back-link">Về giỏ hàng</a>
+        </aside>
+    </form>
+{% endblock %}

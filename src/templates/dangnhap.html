@@ -8,6 +8,7 @@
 </head>
 <body class="login-page">
     {% set ve_gio_hang = request.args.get('next') == 'gio_hang' %}
+    {% set next_hop_le = request.args.get('next') if request.args.get('next') in ['gio_hang', 'dat_hang', 'don_mua', 'mua_hang'] else none %}
 
     <header class="site-header">
         <div class="header-content">
@@ -25,6 +26,8 @@
             <h1 id="login-heading">Đăng nhập</h1>
             <p class="description">
                 {% if ve_gio_hang %}Đăng nhập để xem giỏ hàng của bạn.
+                {% elif next_hop_le in ['mua_hang', 'dat_hang'] %}Đăng nhập để tiếp tục mua và đặt hàng.
+                {% elif next_hop_le == 'don_mua' %}Đăng nhập để xem đơn mua của bạn.
                 {% else %}Đăng nhập bằng email và mật khẩu đã đăng ký.{% endif %}
             </p>
 
@@ -36,7 +39,7 @@
                 <p class="message error" role="alert">Phiên biểu mẫu không hợp lệ. Hãy tải lại trang và thử lại.</p>
             {% endif %}
 
-            <form method="post" action="/dangnhap{% if ve_gio_hang %}?next=gio_hang{% endif %}" novalidate>
+            <form method="post" action="{{ url_for('dangnhap', next=next_hop_le) }}" novalidate>
                 {{ form.hidden_tag() }}
 
                 <div class="form-field">
@@ -66,7 +69,7 @@
             </form>
 
             <p class="switch-page">Chưa có tài khoản?
-                <a href="/dangky{% if ve_gio_hang %}?next=gio_hang{% endif %}">Đăng ký ngay</a>
+                <a href="{{ url_for('dangky', next=next_hop_le) }}">Đăng ký ngay</a>
             </p>
         </section>
     </main>

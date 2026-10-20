@@ -6,6 +6,8 @@
     <title>Giỏ hàng | HCMUTE</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/gio_hang.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mua_hang.css') }}">
+    <script src="{{ url_for('static', filename='js/mua_hang.js') }}" defer></script>
 </head>
 <body>
     {# Tiền đã được tính ở backend bằng Decimal. #}
@@ -58,7 +60,7 @@
                     </summary>
                     <div class="account-dropdown">
                         <span class="account-item">Thông tin tài khoản</span>
-                        <span class="account-item">Đơn mua</span>
+                        <a class="account-item" href="{{ url_for('don_mua') }}">Đơn mua</a>
                         <form method="post" action="{{ url_for('dangxuat') }}" class="logout-form">
                             {{ form_dangxuat.hidden_tag() }}
                             <button type="submit" class="account-item logout-button">Đăng xuất</button>
@@ -83,22 +85,34 @@
             <span aria-current="page">Giỏ hàng</span>
         </nav>
 
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% for category, message in messages %}
-                <p class="cart-message" role="status">{{ message }}</p>
-            {% endfor %}
-        {% endwith %}
+        {% for category, message in get_flashed_messages(with_categories=true) %}
+            <p class="shop-message {{ category }}" role="{{ 'alert' if category == 'error' else 'status' }}">{{ message }}</p>
+        {% endfor %}
 
         <div class="cart-heading">
             <h1>Giỏ hàng</h1>
             <p>{{ gio_hang["tong_so_luong"] }} sản phẩm</p>
         </div>
 
+        {% set chon = namespace(tong_tien=0, so_luong=0, so_dong=0, co_the_mua=0) %}
+        {% for sp in gio_hang["san_pham"] %}
+            {% if sp["so_luong_ton"] >= sp["so_luong"] and sp["so_luong"] > 0 %}
+                {% set chon.co_the_mua = chon.co_the_mua + 1 %}
+                {% if san_pham_duoc_chon is none or sp["san_pham_id"] in san_pham_duoc_chon %}
+                    {% set chon.tong_tien = chon.tong_tien + sp["thanh_tien"] %}
+                    {% set chon.so_luong = chon.so_luong + sp["so_luong"] %}
+                    {% set chon.so_dong = chon.so_dong + 1 %}
+                {% endif %}
+            {% endif %}
+        {% endfor %}
         {% if gio_hang["san_pham"] %}
             <div class="cart-layout">
                 <section class="cart-panel cart-products" aria-labelledby="cart-products-heading">
                     <h2 id="cart-products-heading" class="sr-only">Sản phẩm trong giỏ hàng</h2>
-                    <div class="cart-column-headings" aria-hidden="true">
+                    <div class="cart-column-headings">
+                        <input type="checkbox" id="cart-select-all" aria-label="Chọn tất cả sản phẩm có thể mua"
+                               {% if chon.co_the_mua > 0 and chon.so_dong == chon.co_the_mua %}checked{% endif %}
+                               {% if not chon.co_the_mua %}disabled{% endif %}>
                         <span>Sản phẩm</span>
                         <span>Đơn giá</span>
                         <span>Số lượng</span>
@@ -108,6 +122,12 @@
                     <ul class="cart-items">
                         {% for sp in gio_hang["san_pham"] %}
                             <li class="cart-item">
+                                <input type="checkbox" class="cart-item-check" name="san_pham_id" value="{{ sp['san_pham_id'] }}"
+                                       form="chon-gio-hang" aria-label="Chọn {{ sp['ten_san_pham'] }}"
+                                       data-line-total="{{ sp['thanh_tien'] }}" data-quantity="{{ sp['so_luong'] }}"
+                                       {% if sp["so_luong_ton"] >= sp["so_luong"] and sp["so_luong"] > 0 %}
+                                           {% if san_pham_duoc_chon is none or sp["san_pham_id"] in san_pham_duoc_chon %}checked{% endif %}
+                                       {% else %}disabled{% endif %}>
                                 <a href="{{ url_for('chi_tiet_san_pham', san_pham_id=sp['san_pham_id']) }}"
                                    class="cart-product">
                                     <div class="cart-product-image">
@@ -138,7 +158,18 @@
                                 </div>
                                 <div class="cart-quantity">
                                     <span class="cart-mobile-label">Số lượng</span>
-                                    <span>{{ sp["so_luong"] }}</span>
+                                    <form method="post" action="{{ url_for('cap_nhat_gio_hang', san_pham_id=sp['san_pham_id']) }}" class="cart-update-form">
+                                        <input type="hidden" name="csrf_token" value="{{ form_mua_hang.csrf_token.current_token }}">
+                                        <label class="sr-only" for="cart-qty-{{ sp['san_pham_id'] }}">Số lượng {{ sp['ten_san_pham'] }}</label>
+                                        <input id="cart-qty-{{ sp['san_pham_id'] }}" name="so_luong" type="number" min="1" step="1"
+                                               max="{{ [sp['so_luong_ton'], 1] | max }}" value="{{ sp['so_luong'] }}" inputmode="numeric"
+                                               {% if sp["so_luong_ton"] <= 0 %}disabled{% endif %}>
+                                        <button type="submit" class="shop-text-button" {% if sp["so_luong_ton"] <= 0 %}disabled{% endif %}>Cập nhật</button>
+                                    </form>
+                                    <form method="post" action="{{ url_for('xoa_khoi_gio_hang', san_pham_id=sp['san_pham_id']) }}">
+                                        <input type="hidden" name="csrf_token" value="{{ form_mua_hang.csrf_token.current_token }}">
+                                        <button type="submit" class="shop-text-button shop-danger">Xóa</button>
+                                    </form>
                                 </div>
                                 <div class="cart-line-total">
                                     <span class="cart-mobile-label">Thành tiền</span>
@@ -152,14 +183,19 @@
                 <aside class="cart-panel cart-summary" aria-labelledby="cart-summary-heading">
                     <h2 id="cart-summary-heading">Thông tin giỏ hàng</h2>
                     <div class="cart-summary-row">
-                        <span>Tổng số lượng</span>
-                        <strong>{{ gio_hang["tong_so_luong"] }}</strong>
+                        <span>Số lượng đã chọn</span>
+                        <strong id="cart-selected-quantity">{{ chon.so_luong }}</strong>
                     </div>
                     <div class="cart-summary-total">
-                        <span>Tạm tính tiền sản phẩm</span>
-                        <strong>{{ tien_viet(gio_hang["tong_tien"]) }}</strong>
+                        <span>Tiền sản phẩm đã chọn</span>
+                        <strong id="cart-selected-total">{{ tien_viet(chon.tong_tien) }}</strong>
                     </div>
-                    <a href="{{ url_for('trang_chu') }}#catalog-section" class="cart-continue-link">
+                    <form id="chon-gio-hang" method="post" action="{{ url_for('chon_san_pham_dat_hang') }}">
+                        <input type="hidden" name="csrf_token" value="{{ form_mua_hang.csrf_token.current_token }}">
+                        <button type="submit" class="shop-button shop-primary shop-full-width" id="cart-checkout-button"
+                                {% if not chon.so_luong %}disabled{% endif %}>Đặt hàng</button>
+                    </form>
+                    <a href="{{ url_for('trang_chu') }}#catalog-section" class="shop-back-link">
                         Tiếp tục mua sắm
                     </a>
                 </aside>

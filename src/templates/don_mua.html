@@ -1,0 +1,28 @@
+{% extends "mua_hang_base.html" %}
+{% block title %}Đơn mua{% endblock %}
+{% block breadcrumb %}<span aria-current="page">Đơn mua</span>{% endblock %}
+{% block content %}
+    <div class="shop-heading"><h1>Đơn mua</h1><p>{{ danh_sach_don | length }} đơn hàng</p></div>
+    {% if danh_sach_don %}
+        <div class="shop-orders">
+            {% for don in danh_sach_don %}
+                <article class="shop-panel shop-order-card">
+                    <div class="shop-order-card-heading">
+                        <div><h2>{{ don["ma_don_hang"] }}</h2><p class="shop-muted">{{ don["created_at"].strftime("%d/%m/%Y %H:%M") }}</p></div>
+                        <span class="shop-status">{{ trang_thai_don.get(don["trang_thai_don_hang"], don["trang_thai_don_hang"]) }}</span>
+                    </div>
+                    <div class="shop-order-card-footer">
+                        <p>Tổng tiền: <strong>{{ tien_viet(don["tong_tien"]) }}</strong></p>
+                        <a href="{{ url_for('chi_tiet_don_mua', don_hang_id=don['don_hang_id']) }}" class="shop-button shop-outline">Xem chi tiết</a>
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <section class="shop-panel shop-empty">
+            <h2>Bạn chưa có đơn hàng nào</h2>
+            <p>Khám phá sản phẩm và chọn thiết bị phù hợp với không gian của bạn.</p>
+            <a href="{{ url_for('trang_chu') }}#catalog-section" class="shop-button shop-primary">Khám phá sản phẩm</a>
+        </section>
+    {% endif %}
+{% endblock %}

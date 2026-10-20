@@ -1,0 +1,54 @@
+{% extends "mua_hang_base.html" %}
+{% block title %}Đơn hàng {{ don_hang["ma_don_hang"] }}{% endblock %}
+{% block breadcrumb %}
+    <a href="{{ url_for('don_mua') }}">Đơn mua</a><span aria-hidden="true">/</span>
+    <span aria-current="page">{{ don_hang["ma_don_hang"] }}</span>
+{% endblock %}
+{% block content %}
+    <div class="shop-heading"><h1>Chi tiết đơn hàng</h1><p>{{ don_hang["ma_don_hang"] }}</p></div>
+    <div class="shop-checkout-layout">
+        <div class="shop-checkout-main">
+            <section class="shop-panel">
+                <div class="shop-order-card-heading">
+                    <h2>Thông tin đơn hàng</h2>
+                    <span class="shop-status">{{ trang_thai_don.get(don_hang["trang_thai_don_hang"], don_hang["trang_thai_don_hang"]) }}</span>
+                </div>
+                <p class="shop-muted">Ngày đặt: {{ don_hang["created_at"].strftime("%d/%m/%Y %H:%M") }}</p>
+                <p>{{ {"chua_thanh_toan":"Chưa thanh toán", "da_thanh_toan":"Đã thanh toán", "hoan_tien":"Đã hoàn tiền"}.get(don_hang["trang_thai_thanh_toan"], don_hang["trang_thai_thanh_toan"]) }}</p>
+            </section>
+            <section class="shop-panel">
+                <h2>Địa chỉ nhận hàng</h2>
+                <address class="shop-address">
+                    <strong>{{ don_hang["ten_nguoi_nhan"] }}</strong>
+                    <span>{{ don_hang["so_dien_thoai"] }}</span>
+                    <span>{{ don_hang["dia_chi_chi_tiet"] }}, {{ don_hang["phuong_xa"] }}, {{ don_hang["tinh_thanh"] }}</span>
+                </address>
+                {% if don_hang["ghi_chu"] %}<p class="shop-customer-note">Ghi chú: {{ don_hang["ghi_chu"] }}</p>{% endif %}
+            </section>
+            <section class="shop-panel">
+                <h2>Sản phẩm đã đặt</h2>
+                <ul class="shop-checkout-items">
+                    {% for sp in don_hang["san_pham"] %}
+                        <li class="shop-checkout-item">
+                            <div><a href="{{ url_for('chi_tiet_san_pham', san_pham_id=sp['san_pham_id']) }}"><strong>{{ sp["ten_san_pham"] }}</strong></a>
+                                <p class="shop-muted">{{ tien_viet(sp["don_gia"]) }} × {{ sp["so_luong"] }}</p></div>
+                            <strong>{{ tien_viet(sp["thanh_tien"]) }}</strong>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </section>
+        </div>
+        <aside class="shop-panel shop-order-summary">
+            <h2>Thông tin thanh toán</h2>
+            <dl class="shop-totals">
+                <div><dt>Tiền sản phẩm</dt><dd>{{ tien_viet(don_hang["tam_tinh"]) }}</dd></div>
+                <div><dt>Phí vận chuyển</dt><dd>{{ tien_viet(don_hang["phi_van_chuyen"]) }}</dd></div>
+                <div><dt>Giảm giá</dt><dd>{{ tien_viet(don_hang["giam_gia"]) }}</dd></div>
+                <div class="shop-grand-total"><dt>Tổng tiền</dt><dd>{{ tien_viet(don_hang["tong_tien"]) }}</dd></div>
+            </dl>
+            <p class="shop-order-note">{{ {"cod":"Thanh toán khi nhận hàng (COD)", "chuyen_khoan":"Chuyển khoản", "online":"Thanh toán trực tuyến"}.get(don_hang["phuong_thuc_thanh_toan"], don_hang["phuong_thuc_thanh_toan"]) }}</p>
+            <a href="{{ url_for('don_mua') }}" class="shop-button shop-outline shop-full-width">Về đơn mua</a>
+            <a href="{{ url_for('trang_chu') }}#catalog-section" class="shop-back-link">Tiếp tục mua sắm</a>
+        </aside>
+    </div>
+{% endblock %}

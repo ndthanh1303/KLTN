@@ -19,6 +19,8 @@
         rel="stylesheet"
         href="{{ url_for('static', filename='css/home.css') }}"
     >
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mua_hang.css') }}">
+    <script src="{{ url_for('static', filename='js/mua_hang.js') }}" defer></script>
 </head>
 
 <body>
@@ -112,6 +114,18 @@
                     {% endif %}
                 </div>
             </a>
+            <form method="post" action="{{ url_for('mua_san_pham', san_pham_id=sp['san_pham_id']) }}" class="card-purchase-actions">
+                <input type="hidden" name="csrf_token" value="{{ form_mua_hang.csrf_token.current_token }}">
+                <input type="hidden" name="so_luong" value="1">
+                <input type="hidden" name="noi_ve" value="trang_chu">
+                <button type="submit" name="hanh_dong" value="mua_ngay" class="shop-button shop-primary card-buy-now"
+                        {% if sp["so_luong_ton"] <= 0 %}disabled{% endif %}>Mua ngay</button>
+                <button type="submit" name="hanh_dong" value="them" class="shop-button shop-outline card-add-cart"
+                        aria-label="Thêm {{ sp['ten_san_pham'] }} vào giỏ hàng" title="Thêm vào giỏ hàng"
+                        {% if sp["so_luong_ton"] <= 0 %}disabled{% endif %}>
+                    <img src="{{ url_for('static', filename='images/icon-gio-hang.png') }}" alt="" width="20" height="20">
+                </button>
+            </form>
         </article>
     {% endmacro %}
 
@@ -210,7 +224,7 @@
 
                         <div class="account-dropdown">
                             <span class="account-item">Thông tin tài khoản</span>
-                            <span class="account-item">Đơn mua</span>
+                            <a class="account-item" href="{{ url_for('don_mua') }}">Đơn mua</a>
                             <form method="post"
                                 action="{{ url_for('dangxuat') }}"
                                 class="logout-form">
@@ -310,6 +324,10 @@
         {% endif %}
 
         <main class="main-content" id="main-content">
+        {% for category, message in get_flashed_messages(with_categories=true) %}
+            <p class="shop-message {{ category }}" role="{{ 'alert' if category == 'error' else 'status' }}">{{ message }}</p>
+        {% endfor %}
+
 
             <!-- Thương hiệu -->
             {% if thuong_hieu %}

@@ -6,6 +6,8 @@
     <title>{{ san_pham["ten_san_pham"] }} | HCMUTE</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/chi_tiet_san_pham.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mua_hang.css') }}">
+    <script src="{{ url_for('static', filename='js/mua_hang.js') }}" defer></script>
 </head>
 <body>
     {% set hinh_anh = san_pham["hinh_anh"] %}
@@ -64,7 +66,7 @@
                         </summary>
                         <div class="account-dropdown">
                             <span class="account-item">Thông tin tài khoản</span>
-                            <span class="account-item">Đơn mua</span>
+                            <a class="account-item" href="{{ url_for('don_mua') }}">Đơn mua</a>
                             <form method="post" action="{{ url_for('dangxuat') }}" class="logout-form">
                                 {{ form_dangxuat.hidden_tag() }}
                                 <button type="submit" class="account-item logout-button">Đăng xuất</button>
@@ -91,6 +93,10 @@
     </header>
 
     <main id="main-content" class="container detail-page">
+        {% for category, message in get_flashed_messages(with_categories=true) %}
+            <p class="shop-message {{ category }}" role="{{ 'alert' if category == 'error' else 'status' }}">{{ message }}</p>
+        {% endfor %}
+
         <nav class="detail-breadcrumb" aria-label="Đường dẫn">
             <ol>
                 <li><a href="{{ url_for('trang_chu') }}">Trang chủ</a></li>
@@ -160,6 +166,28 @@
                 {% else %}
                     <p class="detail-stock is-unavailable">Hết hàng</p>
                 {% endif %}
+
+                <form method="post" action="{{ url_for('mua_san_pham', san_pham_id=san_pham['san_pham_id']) }}" class="detail-purchase-form">
+                    <input type="hidden" name="csrf_token" value="{{ form_mua_hang.csrf_token.current_token }}">
+                    <input type="hidden" name="noi_ve" value="chi_tiet">
+                    <label for="purchase-quantity" class="purchase-quantity-label">Số lượng</label>
+                    <div class="purchase-quantity-control" data-quantity-control>
+                        <button type="button" data-quantity-step="-1" aria-label="Giảm số lượng" {% if san_pham["so_luong_ton"] <= 0 %}disabled{% endif %}>−</button>
+                        <input id="purchase-quantity" name="so_luong" type="number" value="1" min="1" step="1"
+                               max="{{ [san_pham['so_luong_ton'], 1] | max }}" inputmode="numeric"
+                               {% if san_pham["so_luong_ton"] <= 0 %}disabled{% endif %}>
+                        <button type="button" data-quantity-step="1" aria-label="Tăng số lượng" {% if san_pham["so_luong_ton"] <= 0 %}disabled{% endif %}>+</button>
+                    </div>
+                    <div class="detail-purchase-actions">
+                        <button type="submit" name="hanh_dong" value="them" class="shop-button shop-outline"
+                                {% if san_pham["so_luong_ton"] <= 0 %}disabled{% endif %}>
+                            <img src="{{ url_for('static', filename='images/icon-gio-hang.png') }}" alt="" width="20" height="20">
+                            Thêm vào giỏ hàng
+                        </button>
+                        <button type="submit" name="hanh_dong" value="mua_ngay" class="shop-button shop-primary"
+                                {% if san_pham["so_luong_ton"] <= 0 %}disabled{% endif %}>Mua ngay</button>
+                    </div>
+                </form>
 
                 <h2 class="detail-info-heading">Thông tin sản phẩm</h2>
                 <dl class="detail-specs">
