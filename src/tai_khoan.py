@@ -3,7 +3,7 @@
 import pymysql
 from flask_wtf import FlaskForm
 from werkzeug.security import check_password_hash, generate_password_hash
-from wtforms import EmailField, PasswordField, StringField, SubmitField
+from wtforms import BooleanField, EmailField, PasswordField, StringField, SubmitField
 from wtforms.validators import (
     DataRequired, Email, EqualTo, InputRequired, Length, Optional, Regexp,
 )
@@ -86,6 +86,20 @@ class DangNhapForm(FlaskForm):
     mat_khau = truong_mat_khau()
     submit = SubmitField("Đăng nhập")
 
+class DangNhapAdminForm(FlaskForm):
+    ten_dang_nhap = StringField(
+        "Tên đăng nhập",
+        default="admin",
+        validators=[
+            InputRequired(message="Vui lòng nhập tên đăng nhập."),
+            Length(max=50, message="Tên đăng nhập không vượt quá 50 ký tự."),
+            Regexp(r"\Aadmin\Z", message="Tên đăng nhập quản trị phải là admin."),
+        ],
+    )
+    mat_khau = truong_mat_khau()  # Dùng lại kiểm tra mật khẩu của form hiện có.
+    ghi_nho = BooleanField("Ghi nhớ đăng nhập trong 7 ngày")
+    submit = SubmitField("Đăng nhập")
+
 class DangXuatForm(FlaskForm):
     submit = SubmitField("Đăng xuất")
 
@@ -151,6 +165,23 @@ def tim_tai_khoan_theo_email(email):
         connection.close()
 
 
+def tim_tai_khoan_theo_id(users_id):
+    """Đọc quyền hiện tại từ database; không lấy password hash cho bước phân quyền."""
+    if type(users_id) is not int or users_id < 1:
+        return None
+    connection = get_db_connection()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT users_id, ho_ten, email, phan_quyen
+                   FROM users WHERE users_id = %s LIMIT 1""",
+                (users_id,),
+            )
+            return cursor.fetchone()
+    finally:
+        connection.close()
+
+
 def kiem_tra_mat_khau(mat_khau_da_bam, mat_khau_nhap):
     if not isinstance(mat_khau_da_bam, str) or not isinstance(mat_khau_nhap, str):
         return False
@@ -173,3 +204,44 @@ def xac_thuc_tai_khoan(email, mat_khau):
         "email": user["email"],
         "phan_quyen": user["phan_quyen"],
     }
+
+
+class LoiCauHinhAdmin(Exception):
+    """Cần chỉ định ADMIN_USER_ID khi có nhiều tài khoản quản trị."""
+
+
+def xac_thuc_quan_tri(ten_dang_nhap, mat_khau, users_id=None):
+    """Tên cố định admin; mật khẩu thuộc đúng một tài khoản quản trị trong DB."""
+    if ten_dang_nhap != "admin":
+        return None
+    if users_id is not None and (type(users_id) is not int or users_id < 1):
+        raise LoiCauHinhAdmin("ADMIN_USER_ID phải là users_id nguyên dương.")
+
+    connection = get_db_connection()
+    try:
+        with connection.cursor() as cursor:
+            if users_id is None:
+                # Đọc tối đa hai dòng để phát hiện trường hợp tên admin bị mơ hồ.
+                cursor.execute(
+                    """SELECT users_id, ho_ten, email, mat_khau, phan_quyen
+                       FROM users WHERE phan_quyen = %s
+                       ORDER BY users_id LIMIT 2""",
+                    ("admin",),
+                )
+            else:
+                cursor.execute(
+                    """SELECT users_id, ho_ten, email, mat_khau, phan_quyen
+                       FROM users WHERE users_id = %s AND phan_quyen = %s
+                       LIMIT 1""",
+                    (users_id, "admin"),
+                )
+            tai_khoan = cursor.fetchall()
+    finally:
+        connection.close()
+
+    if len(tai_khoan) > 1:
+        raise LoiCauHinhAdmin("Có nhiều admin. Hãy cấu hình ADMIN_USER_ID trong app.py.")
+    if not tai_khoan or not kiem_tra_mat_khau(tai_khoan[0]["mat_khau"], mat_khau):
+        return None
+    user = tai_khoan[0]
+    return {key: user[key] for key in ("users_id", "ho_ten", "email", "phan_quyen")}

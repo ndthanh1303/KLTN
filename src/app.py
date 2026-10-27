@@ -1,5 +1,7 @@
 import os
 import time
+from datetime import timedelta
+from functools import wraps
 from secrets import token_hex
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 
@@ -8,20 +10,24 @@ from flask import Flask, flash, redirect, render_template, url_for
 
 
 # db.py đọc .env khi được import.
-from db import get_db_connection, lay_du_lieu_trang_chu, lay_chi_tiet_san_pham, lay_gio_hang
+from db import get_db_connection, lay_du_lieu_trang_chu, lay_chi_tiet_san_pham, lay_gio_hang, lay_thong_ke_quan_tri
 
 
 from flask import (
-    flash,abort, redirect, render_template, request, session, url_for,
+    flash,abort, g, redirect, render_template, request, session, url_for,
 )
 
 from tai_khoan import (
     DangKyForm,
     DangNhapForm,
+    DangNhapAdminForm,
     DangXuatForm,
     EmailDaTonTai,
     tao_tai_khoan,
     xac_thuc_tai_khoan,
+    tim_tai_khoan_theo_id,
+    xac_thuc_quan_tri,
+    LoiCauHinhAdmin,
 )
 
 from mua_hang import (
@@ -31,12 +37,16 @@ from mua_hang import (
     lay_thong_tin_nhan_hang, tao_don_hang, lay_don_mua, lay_chi_tiet_don_mua,
 )
 
+from quan_tri import NHOM_MODULE_ADMIN, MODULE_ADMIN, lay_danh_sach_quan_tri
+
 app = Flask(__name__)
 app.config["PHI_VAN_CHUYEN"] = "0"  # Tạm tính 0 đồng; chỉnh theo chính sách cửa hàng.
 
 app.config["SECRET_KEY"] = os.environ["SECRET_KEY"]
 app.config["SESSION_COOKIE_HTTPONLY"] = True # Ngăn JavaScript trong trang đọc cookie phiên đăng nhập.
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax" # Hạn chế gửi cookie khi yêu cầu đến từ website khác, giúp giảm nguy cơ CSRF.
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=7)  # Áp dụng khi chọn ghi nhớ đăng nhập.
+app.config["ADMIN_USER_ID"] = None  # Một admin: tự nhận; nhiều admin: điền users_id của tài khoản dùng tên admin.
 
 
 @app.route("/")
@@ -381,6 +391,137 @@ def chi_tiet_don_mua(don_hang_id):
     if don is None:
         abort(404)
     return render_template("chi_tiet_don_hang.html", don_hang=don)
+
+
+def _tai_khoan_hien_tai():
+    """Lấy quyền mới nhất, kể cả khi tài khoản đã bị đổi quyền hoặc xóa."""
+    if not session.get("users_id"):
+        return None
+    try:
+        return tim_tai_khoan_theo_id(session["users_id"])
+    except pymysql.MySQLError:
+        app.logger.exception("Không thể kiểm tra quyền quản trị.")
+        abort(503, description="Không thể kiểm tra tài khoản. Vui lòng thử lại sau.")
+
+
+def yeu_cau_admin(view):
+    """Dùng lại decorator này cho mọi route quản trị được bổ sung sau này."""
+    @wraps(view)
+    def wrapper(*args, **kwargs):
+        user = _tai_khoan_hien_tai()
+        if user is None:
+            if session.get("users_id"):
+                session.clear()
+                flash("Phiên đăng nhập không còn hợp lệ. Vui lòng đăng nhập lại.", "error")
+            return redirect(url_for("admin_dangnhap"), code=303)
+        if user["phan_quyen"] != "admin":
+            session["phan_quyen"] = user["phan_quyen"]
+            flash("Vui lòng đăng nhập bằng tài khoản quản trị.", "info")
+            return redirect(url_for("admin_dangnhap"), code=303)
+        g.quan_tri_vien = user
+        return view(*args, **kwargs)
+    return wrapper
+
+
+@app.after_request
+def khong_luu_cache_trang_admin(response):
+    # Hạn chế hiển thị lại nội dung quản trị đã lưu khi bấm Quay lại sau đăng xuất.
+    if request.path == "/admin" or request.path.startswith("/admin/"):
+        response.headers["Cache-Control"] = "no-store, max-age=0"
+    return response
+
+
+@app.route("/admin/dangnhap", methods=["GET", "POST"])
+@app.route("/admin/login", methods=["GET", "POST"])
+def admin_dangnhap():
+    if request.method == "GET":
+        user_hien_tai = _tai_khoan_hien_tai()
+        if user_hien_tai and user_hien_tai["phan_quyen"] == "admin":
+            return redirect(url_for("admin_trang_chu"), code=303)
+
+    form = DangNhapAdminForm()
+    status = 200
+    if form.validate_on_submit():
+        try:
+            user = xac_thuc_quan_tri(
+                form.ten_dang_nhap.data, form.mat_khau.data,
+                users_id=app.config["ADMIN_USER_ID"],
+            )
+        except LoiCauHinhAdmin:
+            app.logger.exception("Cần kiểm tra cấu hình ADMIN_USER_ID.")
+            flash("Chưa thể đăng nhập quản trị. Vui lòng kiểm tra cấu hình tài khoản quản trị.", "error")
+            status = 503
+        except pymysql.MySQLError:
+            app.logger.exception("Lỗi database khi đăng nhập quản trị.")
+            flash("Không thể đăng nhập lúc này. Vui lòng thử lại.", "error")
+            status = 503
+        else:
+            if user and user["phan_quyen"] == "admin":
+                session.clear()  # Xóa thông tin tài khoản/giỏ đang chọn của phiên trước.
+                session["users_id"] = user["users_id"]
+                session["ho_ten"] = user["ho_ten"]
+                session["phan_quyen"] = user["phan_quyen"]
+                session.permanent = bool(form.ghi_nho.data)
+                flash("Đăng nhập quản trị thành công.", "success")
+                return redirect(url_for("admin_trang_chu"), code=303)
+            flash("Tên đăng nhập hoặc mật khẩu không đúng.", "error")
+    elif request.method == "POST" and form.csrf_token.errors:
+        flash("Biểu mẫu không hợp lệ hoặc đã hết hạn. Vui lòng tải lại trang.", "error")
+        status = 400
+
+    return render_template("admin/dangnhap.html", form=form), status
+
+
+@app.route("/admin", strict_slashes=False)
+@yeu_cau_admin
+def admin_trang_chu():
+    try:
+        tong_quan = lay_thong_ke_quan_tri()
+    except pymysql.MySQLError:
+        app.logger.exception("Lỗi tải dữ liệu tổng quan quản trị.")
+        abort(503, description="Không thể tải dữ liệu quản trị. Vui lòng thử lại sau.")
+    return render_template(
+        "admin/trang_chu.html", tong_quan=tong_quan,
+        nhom_module_admin=NHOM_MODULE_ADMIN, module_hien_tai="tong-quan",
+    )
+
+
+@yeu_cau_admin
+def admin_module(ma_module):
+    # Chỉ mở các module trong danh sách cố định, dùng chung khung giao diện.
+    if ma_module not in MODULE_ADMIN:
+        abort(404)
+    try:
+        du_lieu = lay_danh_sach_quan_tri(
+            ma_module, g.quan_tri_vien["users_id"],
+            tu_khoa=request.args.get("q", ""), trang=request.args.get("page", "1"),
+        )
+    except pymysql.MySQLError:
+        app.logger.exception("Lỗi đọc danh sách quản trị: %s", ma_module)
+        abort(503, description="Không thể tải dữ liệu. Vui lòng thử lại sau.")
+    return render_template(
+        "admin/module.html", du_lieu=du_lieu,
+        nhom_module_admin=NHOM_MODULE_ADMIN, module_hien_tai=ma_module,
+    )
+
+
+# Đăng ký đúng các module đã khai báo; không chiếm đường dẫn login/logout.
+for _ma_module in MODULE_ADMIN:
+    app.add_url_rule(
+        "/admin/" + _ma_module, endpoint="admin_module", view_func=admin_module,
+        defaults={"ma_module": _ma_module},
+    )
+
+
+@app.route("/admin/dangxuat", methods=["POST"])
+@app.route("/admin/logout", methods=["POST"])
+def admin_dangxuat():
+    form = DangXuatForm()
+    if not form.validate_on_submit():
+        abort(400, description="Yêu cầu đăng xuất không hợp lệ. Vui lòng tải lại trang.")
+    session.clear()
+    flash("Bạn đã đăng xuất khỏi trang quản trị.", "success")
+    return redirect(url_for("admin_dangnhap"), code=303)
 
 
 if __name__ == "__main__":

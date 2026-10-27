@@ -1,0 +1,47 @@
+{% extends "admin/base.html" %}
+{% block title %}Bảng điều khiển | Quản trị{% endblock %}
+{% block content %}
+    <section class="admin-panel" aria-labelledby="admin-dashboard-title">
+        <div class="admin-panel-heading"><div><h1 id="admin-dashboard-title">Bảng điều khiển</h1><p>Tổng quan hoạt động cửa hàng</p></div><span class="admin-section-label">TỔNG QUAN</span></div>
+        <div class="admin-quick-grid">
+            {% set cards = [
+                ('san-pham', 'Sản phẩm', 'box', 'red', tong_quan.thong_ke.tong_san_pham),
+                ('don-hang', 'Đơn hàng', 'bag', 'blue', tong_quan.thong_ke.tong_don_hang),
+                ('tai-khoan', 'Tài khoản', 'users', 'green', none),
+                ('ton-kho', 'Tồn kho', 'warehouse', 'orange', none)
+            ] %}
+            {% for key, label, symbol, color, count in cards %}
+                <a class="admin-quick-card" href="{{ url_for('admin_module', ma_module=key) }}">
+                    <span class="admin-quick-icon color-{{ color }}">{{ icon(symbol) }}</span>
+                    <span class="admin-quick-info"><span>{{ label }}</span>{% if count is not none %}<strong>{{ count }}</strong>{% endif %}<small>Xem danh sách →</small></span>
+                </a>
+            {% endfor %}
+        </div>
+        <div class="admin-order-reminder"><span class="admin-reminder-dot" aria-hidden="true"></span><p><strong>{{ tong_quan.thong_ke.don_cho_xu_ly }}</strong> đơn hàng đang chờ xử lý</p><a href="{{ url_for('admin_module', ma_module='don-hang') }}">Xem đơn hàng →</a></div>
+    </section>
+
+    <section class="admin-panel" id="don-hang-moi" aria-labelledby="admin-orders-title">
+        <div class="admin-panel-heading"><div><h2 id="admin-orders-title">Đơn hàng gần đây</h2><p>5 đơn được tạo gần nhất</p></div><a class="admin-panel-link" href="{{ url_for('admin_module', ma_module='don-hang') }}">Xem tất cả →</a></div>
+        {% if tong_quan.don_gan_day %}
+            <div class="admin-table-scroll" role="region" aria-labelledby="admin-orders-title" tabindex="0">
+                <table class="admin-table">
+                    <thead><tr><th scope="col">Mã đơn hàng</th><th scope="col">Người nhận</th><th scope="col">Ngày tạo</th><th scope="col">Tổng tiền</th><th scope="col">Trạng thái</th></tr></thead>
+                    <tbody>{% for don in tong_quan.don_gan_day %}
+                        <tr><td><a class="admin-data-link" href="{{ url_for('admin_module', ma_module='don-hang', q=don.ma_don_hang) }}">{{ don.ma_don_hang }}</a></td><td>{{ don.ten_nguoi_nhan }}</td><td>{{ don.created_at.strftime('%d/%m/%Y %H:%M') if don.created_at else '—' }}</td><td class="admin-number-cell">{{ money(don.tong_tien) }}</td><td><span class="admin-status status-{{ don.trang_thai_don_hang }}">{{ trang_thai_don.get(don.trang_thai_don_hang, don.trang_thai_don_hang) }}</span></td></tr>
+                    {% endfor %}</tbody>
+                </table>
+            </div>
+        {% else %}<div class="admin-empty">{{ icon('bag') }}<p>Chưa có đơn hàng nào.</p></div>{% endif %}
+    </section>
+
+    <section class="admin-panel" id="ton-kho" aria-labelledby="admin-stock-title">
+        <div class="admin-panel-heading"><div><h2 id="admin-stock-title">Sản phẩm tồn kho thấp</h2><p>Tối đa 5 sản phẩm có tồn kho từ 5 trở xuống</p></div><a class="admin-panel-link" href="{{ url_for('admin_module', ma_module='ton-kho') }}">Xem tồn kho →</a></div>
+        {% if tong_quan.ton_kho_thap %}
+            <div class="admin-table-scroll" role="region" aria-labelledby="admin-stock-title" tabindex="0">
+                <table class="admin-table"><thead><tr><th scope="col">Mã sản phẩm</th><th scope="col">Tên sản phẩm</th><th scope="col">Số lượng tồn</th></tr></thead>
+                    <tbody>{% for sp in tong_quan.ton_kho_thap %}<tr><td>{{ sp.ma_san_pham }}</td><td>{{ sp.ten_san_pham }}</td><td><span class="admin-status {{ 'status-huy_don' if sp.so_luong_ton <= 0 else 'status-cho_xu_ly' }}">{{ sp.so_luong_ton }}</span></td></tr>{% endfor %}</tbody>
+                </table>
+            </div>
+        {% else %}<div class="admin-empty">{{ icon('warehouse') }}<p>Chưa có sản phẩm ở mức tồn kho thấp.</p></div>{% endif %}
+    </section>
+{% endblock %}

@@ -1,0 +1,56 @@
+{% extends "admin/base.html" %}
+{% block title %}{{ du_lieu.cau_hinh.tieu_de }} | Quản trị{% endblock %}
+{% block content %}
+    <nav class="admin-breadcrumb" aria-label="Đường dẫn"><a href="{{ url_for('admin_trang_chu') }}">Quản trị</a><span aria-hidden="true">/</span><span aria-current="page">{{ du_lieu.cau_hinh.tieu_de }}</span></nav>
+    <section class="admin-panel" aria-labelledby="admin-module-title">
+        <div class="admin-panel-heading"><div><h1 id="admin-module-title">{{ du_lieu.cau_hinh.tieu_de }}</h1><p>{{ du_lieu.cau_hinh.mo_ta }}</p></div><span class="admin-count">{{ du_lieu.tong }} {{ 'tháng' if module_hien_tai == 'bao-cao' else 'bản ghi' }}</span></div>
+        {% if du_lieu.tim_kiem %}
+            {# GET chỉ tìm kiếm dữ liệu, không thay đổi database. #}
+            <form class="admin-search-form" method="get" action="{{ url_for('admin_module', ma_module=module_hien_tai) }}" role="search">
+                <label class="admin-sr-only" for="admin-search">Tìm trong {{ du_lieu.cau_hinh.tieu_de }}</label>
+                <div class="admin-search-input">{{ icon('search') }}<input id="admin-search" name="q" type="search" value="{{ du_lieu.q }}" placeholder="Nhập từ khóa tìm kiếm" maxlength="150"></div>
+                <button type="submit" class="admin-button">Tìm kiếm</button>
+                {% if du_lieu.q %}<a class="admin-reset-link" href="{{ url_for('admin_module', ma_module=module_hien_tai) }}">Xóa bộ lọc</a>{% endif %}
+            </form>
+        {% endif %}
+        {% if du_lieu.dong %}
+            <div class="admin-table-scroll" role="region" aria-labelledby="admin-module-title" tabindex="0">
+                <table class="admin-table">
+                    <thead><tr>{% for key, label, kind in du_lieu.cau_hinh.cot %}<th scope="col">{{ label }}</th>{% endfor %}</tr></thead>
+                    <tbody>
+                    {% for dong in du_lieu.dong %}
+                        <tr>{% for key, label, kind in du_lieu.cau_hinh.cot %}
+                            {% set value = dong[key] %}
+                            <td{% if kind in ['so', 'tien'] %} class="admin-number-cell"{% endif %}>
+                                {% if value is none %}—
+                                {% elif kind == 'tien' %}{{ money(value) }}
+                                {% elif kind == 'so' %}{{ "{:,}".format(value).replace(",", ".") }}
+                                {% elif kind == 'ngay' %}{{ value.strftime('%d/%m/%Y %H:%M') }}
+                                {% elif kind == 'don' %}<span class="admin-status status-{{ value }}">{{ trang_thai_don.get(value, value) }}</span>
+                                {% elif kind == 'quyen' %}<span class="admin-status {{ 'status-admin' if value == 'admin' else '' }}">{{ 'Quản trị viên' if value == 'admin' else 'Khách hàng' }}</span>
+                                {% elif kind == 'doc' %}<span class="admin-status {{ '' if value else 'status-cho_xu_ly' }}">{{ 'Đã đọc' if value else 'Chưa đọc' }}</span>
+                                {% elif kind == 'ton' %}<span class="admin-status {{ 'status-huy_don' if value <= 0 else 'status-cho_xu_ly' if value <= 5 else 'status-hoan_thanh' }}">{{ value }}</span>
+                                {% elif kind == 'sao' %}<span class="admin-stars">{{ value }} / 5 ★</span>
+                                {% elif kind == 'kho' %}{{ {'nhap': 'Nhập kho', 'xuat': 'Xuất kho', 'dieu_chinh': 'Điều chỉnh'}.get(value, value) }}
+                                {% else %}{{ value }}{% endif %}
+                            </td>
+                        {% endfor %}</tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="admin-list-footer">
+                <p>Hiển thị {{ du_lieu.tu }}–{{ du_lieu.den }} / {{ du_lieu.tong }}</p>
+                {% if du_lieu.so_trang > 1 %}
+                    <nav class="admin-pagination" aria-label="Phân trang danh sách">
+                        {% if du_lieu.trang > 1 %}<a href="{{ url_for('admin_module', ma_module=module_hien_tai, q=du_lieu.q, page=du_lieu.trang-1) }}" rel="prev">← Trước</a>{% endif %}
+                        <span aria-current="page">{{ du_lieu.trang }} / {{ du_lieu.so_trang }}</span>
+                        {% if du_lieu.trang < du_lieu.so_trang %}<a href="{{ url_for('admin_module', ma_module=module_hien_tai, q=du_lieu.q, page=du_lieu.trang+1) }}" rel="next">Sau →</a>{% endif %}
+                    </nav>
+                {% endif %}
+            </div>
+        {% else %}
+            <div class="admin-empty">{{ icon('search') }}<p>{{ 'Không tìm thấy dữ liệu phù hợp.' if du_lieu.q else 'Chưa có dữ liệu trong mục này.' }}</p></div>
+        {% endif %}
+    </section>
+{% endblock %}

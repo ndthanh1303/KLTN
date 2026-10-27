@@ -212,3 +212,36 @@ def lay_gio_hang(users_id):
         }
     finally:
         connection.close()
+
+
+def lay_thong_ke_quan_tri():
+    """Đọc số liệu thật cho trang tổng quan; không thay đổi dữ liệu cửa hàng."""
+    connection = get_db_connection()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT
+                   (SELECT COUNT(*) FROM san_pham) AS tong_san_pham,
+                   (SELECT COUNT(*) FROM don_hang) AS tong_don_hang,
+                   (SELECT COUNT(*) FROM don_hang WHERE trang_thai_don_hang = %s) AS don_cho_xu_ly,
+                   (SELECT COUNT(*) FROM users WHERE phan_quyen = %s) AS tong_khach_hang""",
+                ("cho_xu_ly", "user"),
+            )
+            thong_ke = cursor.fetchone()
+            cursor.execute(
+                """SELECT ma_don_hang, ten_nguoi_nhan, tong_tien,
+                          trang_thai_don_hang, created_at
+                   FROM don_hang
+                   ORDER BY created_at DESC, don_hang_id DESC LIMIT 5"""
+            )
+            don_gan_day = cursor.fetchall()
+            cursor.execute(
+                """SELECT ma_san_pham, ten_san_pham, so_luong_ton
+                   FROM san_pham WHERE so_luong_ton <= %s
+                   ORDER BY so_luong_ton ASC, san_pham_id DESC LIMIT 5""",
+                (5,),
+            )
+            ton_kho_thap = cursor.fetchall()
+        return {"thong_ke": thong_ke, "don_gan_day": don_gan_day, "ton_kho_thap": ton_kho_thap}
+    finally:
+        connection.close()
