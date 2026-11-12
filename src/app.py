@@ -37,7 +37,18 @@ from mua_hang import (
     lay_thong_tin_nhan_hang, tao_don_hang, lay_don_mua, lay_chi_tiet_don_mua,
 )
 
-from quan_tri import NHOM_MODULE_ADMIN, MODULE_ADMIN, lay_danh_sach_quan_tri
+from quan_tri import (
+    NHOM_MODULE_ADMIN, MODULE_ADMIN, DU_LIEU_QUAN_TRI, CHUYEN_TRANG_THAI_DON, LoiQuanTri,
+    lay_danh_sach_quan_tri, lay_ban_ghi_quan_tri, lay_tuy_chon_san_pham,
+    luu_nhom_san_pham, luu_san_pham_quan_tri, xoa_ban_ghi_quan_tri,
+    lay_chi_tiet_don_quan_tri, cap_nhat_trang_thai_don_quan_tri, cap_nhat_ton_quan_tri,
+)
+from quan_tri_form import (
+    NhomSanPhamForm, SanPhamQuanTriForm, XoaDuLieuForm, TrangThaiDonForm, DieuChinhKhoForm, url_anh_hop_le,
+)
+from anh_cloudinary import (
+    GIOI_HAN_FORM_ANH, GIOI_HAN_MOI_ANH, GIOI_HAN_TONG_ANH, SO_ANH_MOI_TOI_DA, anh_tu_bieu_mau,
+)
 
 app = Flask(__name__)
 app.config["PHI_VAN_CHUYEN"] = "0"  # Tạm tính 0 đồng; chỉnh theo chính sách cửa hàng.
@@ -502,6 +513,7 @@ def admin_module(ma_module):
     return render_template(
         "admin/module.html", du_lieu=du_lieu,
         nhom_module_admin=NHOM_MODULE_ADMIN, module_hien_tai=ma_module,
+        muc_ghi=DU_LIEU_QUAN_TRI.get(ma_module), url_anh_hop_le=url_anh_hop_le,
     )
 
 
@@ -511,6 +523,155 @@ for _ma_module in MODULE_ADMIN:
         "/admin/" + _ma_module, endpoint="admin_module", view_func=admin_module,
         defaults={"ma_module": _ma_module},
     )
+
+
+def _doc_du_lieu_admin(ham, *args):
+    try:
+        return ham(*args)
+    except LoiQuanTri as error:
+        abort(error.ma_http, description=str(error))
+    except pymysql.MySQLError:
+        app.logger.exception("Lỗi đọc dữ liệu quản trị.")
+        abort(503, description="Không thể tải dữ liệu quản trị. Vui lòng thử lại sau.")
+
+
+def _luu_form_admin(form, ham_luu, url_thanh_cong, thong_bao):
+    """Mọi thay đổi đều qua POST, kiểm tra CSRF và chuyển trang sau khi lưu."""
+    if request.method != "POST":
+        return None, 200
+    if not form.validate_on_submit():
+        _kiem_tra_csrf(form)
+        return None, 422
+    try:
+        ham_luu()
+    except LoiQuanTri as error:
+        if error.ma_http == 404:
+            abort(404, description=str(error))
+        flash(str(error), "error")
+        return None, error.ma_http
+    except pymysql.MySQLError:
+        app.logger.exception("Lỗi lưu dữ liệu quản trị.")
+        flash("Không thể lưu dữ liệu. Vui lòng kiểm tra và thử lại.", "error")
+        return None, 503
+    flash(thong_bao, "success")
+    return redirect(url_thanh_cong, code=303), 200
+
+
+def _hien_thi_form_admin(ma_module, form, tieu_de, status, **context):
+    return render_template(
+        "admin/bieu_mau.html", form=form, tieu_de=tieu_de, tieu_de_module=MODULE_ADMIN[ma_module]["tieu_de"],
+        nhom_module_admin=NHOM_MODULE_ADMIN, module_hien_tai=ma_module, **context,
+    ), status
+
+
+@app.route("/admin/<ma_module>/them", defaults={"ban_ghi_id": None}, methods=["GET", "POST"])
+@app.route("/admin/<ma_module>/<int:ban_ghi_id>/sua", methods=["GET", "POST"])
+@yeu_cau_admin
+def admin_luu_du_lieu(ma_module, ban_ghi_id):
+    if ma_module not in DU_LIEU_QUAN_TRI:
+        abort(404)
+    if request.method == "POST":
+        request.max_content_length = GIOI_HAN_FORM_ANH
+        request.max_form_parts = 80
+    _, _, cot_ten, nhan = DU_LIEU_QUAN_TRI[ma_module]
+    cu = _doc_du_lieu_admin(lay_ban_ghi_quan_tri, ma_module, ban_ghi_id) if ban_ghi_id is not None else {}
+    nhieu_anh = ma_module == "san-pham"
+    chua_co_danh_muc = False
+    if nhieu_anh:
+        danh_muc, thuong_hieu = _doc_du_lieu_admin(lay_tuy_chon_san_pham)
+        anh = cu.get("hinh_anh", [])
+        data = dict(cu, hinh_anh="\n".join(r["url_anh"] for r in anh), thuong_hieu_id=cu.get("thuong_hieu_id") or 0)
+        form = SanPhamQuanTriForm(data=data)
+        form.danh_muc_id.choices = [(0, "Chọn danh mục")] + danh_muc
+        form.thuong_hieu_id.choices = [(0, "Không gán thương hiệu")] + thuong_hieu
+        chua_co_danh_muc = not danh_muc
+        urls_cu = form.danh_sach_anh()
+    else:
+        form = NhomSanPhamForm(data={"ten": cu.get(cot_ten), "hinh_anh": cu.get("hinh_anh")})
+        form.ten.label.text = f"Tên {nhan}"
+        urls_cu = [form.hinh_anh.data] if form.hinh_anh.data else []
+
+    ds_tep = [tep for tep in request.files.getlist("tep_anh") if tep.filename] if request.method == "POST" else []
+
+    def luu():
+        # Chỉ gọi Cloudinary sau khi form và CSRF đã qua kiểm tra.
+        with anh_tu_bieu_mau(ma_module, ds_tep, urls_cu, request.form.get("anh_dai_dien_moi", "")) as (urls, public_ids):
+            if nhieu_anh:
+                luu_san_pham_quan_tri(ban_ghi_id, form.data, urls, public_ids=public_ids)
+            else:
+                luu_nhom_san_pham(ma_module, ban_ghi_id, form.ten.data, urls[0] if urls else None)
+
+    hanh_dong = "Thêm" if ban_ghi_id is None else "Sửa"
+    response, status = _luu_form_admin(
+        form, luu, url_for("admin_module", ma_module=ma_module), f"{hanh_dong} {nhan} thành công.",
+    )
+    if response is not None:
+        return response
+    return _hien_thi_form_admin(
+        ma_module, form, f"{hanh_dong} {nhan}", status,
+        chua_co_danh_muc=chua_co_danh_muc, chon_lai_anh=bool(ds_tep),
+        anh_xem_truoc=[url for url in urls_cu if url_anh_hop_le(url)],
+        cau_hinh_anh={
+            "nhieu_anh": nhieu_anh,
+            "so_anh": SO_ANH_MOI_TOI_DA if nhieu_anh else 1,
+            "moi_anh": GIOI_HAN_MOI_ANH,
+            "tong_anh": GIOI_HAN_TONG_ANH,
+        },
+    )
+
+
+@app.route("/admin/<ma_module>/<int:ban_ghi_id>/xoa", methods=["GET", "POST"])
+@yeu_cau_admin
+def admin_xoa_du_lieu(ma_module, ban_ghi_id):
+    if ma_module not in DU_LIEU_QUAN_TRI:
+        abort(404)
+    _, _, cot_ten, nhan = DU_LIEU_QUAN_TRI[ma_module]
+    ban_ghi = _doc_du_lieu_admin(lay_ban_ghi_quan_tri, ma_module, ban_ghi_id)
+    form = XoaDuLieuForm()
+    response, status = _luu_form_admin(
+        form, lambda: xoa_ban_ghi_quan_tri(ma_module, ban_ghi_id),
+        url_for("admin_module", ma_module=ma_module), f"Đã xóa {nhan}.",
+    )
+    if response is not None:
+        return response
+    return _hien_thi_form_admin(ma_module, form, f"Xóa {nhan}", status, ten_ban_ghi_xoa=ban_ghi[cot_ten])
+
+
+@app.route("/admin/don-hang/<int:don_hang_id>", methods=["GET", "POST"])
+@yeu_cau_admin
+def admin_chi_tiet_don_hang(don_hang_id):
+    don = _doc_du_lieu_admin(lay_chi_tiet_don_quan_tri, don_hang_id)
+    trang_thai = don["trang_thai_don_hang"]
+    cac_buoc = CHUYEN_TRANG_THAI_DON.get(trang_thai, ())
+    form = TrangThaiDonForm(trang_thai_cu=trang_thai)
+    form.trang_thai_moi.choices = [("", "Chọn trạng thái mới")] + [(ma, TRANG_THAI_DON[ma]) for ma in cac_buoc]
+    response, status = _luu_form_admin(
+        form, lambda: cap_nhat_trang_thai_don_quan_tri(
+            don_hang_id, form.trang_thai_cu.data, form.trang_thai_moi.data, g.quan_tri_vien["users_id"],
+        ), url_for("admin_chi_tiet_don_hang", don_hang_id=don_hang_id), "Đã cập nhật trạng thái đơn hàng.",
+    )
+    if response is not None:
+        return response
+    return render_template(
+        "admin/don_hang.html", don=don, form=form, cac_buoc=cac_buoc,
+        nhom_module_admin=NHOM_MODULE_ADMIN, module_hien_tai="don-hang",
+    ), status
+
+
+@app.route("/admin/ton-kho/<int:san_pham_id>", methods=["GET", "POST"])
+@yeu_cau_admin
+def admin_cap_nhat_ton_kho(san_pham_id):
+    sp = _doc_du_lieu_admin(lay_ban_ghi_quan_tri, "san-pham", san_pham_id)
+    form = DieuChinhKhoForm(ton_truoc=sp["so_luong_ton"])
+    response, status = _luu_form_admin(
+        form, lambda: cap_nhat_ton_quan_tri(
+            san_pham_id, form.loai.data, form.so_luong.data, form.ton_truoc.data,
+            form.ghi_chu.data, g.quan_tri_vien["users_id"],
+        ), url_for("admin_cap_nhat_ton_kho", san_pham_id=san_pham_id), "Đã cập nhật tồn kho và ghi lịch sử.",
+    )
+    if response is not None:
+        return response
+    return _hien_thi_form_admin("ton-kho", form, "Cập nhật tồn kho", status, san_pham_ton=sp)
 
 
 @app.route("/admin/dangxuat", methods=["POST"])

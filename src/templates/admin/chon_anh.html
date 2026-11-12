@@ -1,0 +1,56 @@
+<section id="admin-image-upload" class="admin-upload-card" aria-labelledby="admin-image-title"
+         data-max-files="{{ cau_hinh_anh.so_anh }}" data-max-file-size="{{ cau_hinh_anh.moi_anh }}"
+         data-max-total-size="{{ cau_hinh_anh.tong_anh }}">
+    <h2 id="admin-image-title">{{ 'Hình ảnh sản phẩm' if cau_hinh_anh.nhieu_anh else 'Hình ảnh' }}</h2>
+
+    <div class="admin-upload-preview">
+        <img id="admin-image-cover"{% if anh_xem_truoc %} src="{{ anh_xem_truoc[0] }}"{% else %} hidden{% endif %}
+             alt="Ảnh đại diện" referrerpolicy="no-referrer">
+        <div id="admin-image-empty" class="admin-upload-empty"{% if anh_xem_truoc %} hidden{% endif %}>
+            <svg viewBox="0 0 48 48" width="45" height="45" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <rect x="5" y="7" width="38" height="34" rx="4"/>
+                <circle cx="32" cy="17" r="4"/><path d="m5 33 11-11 7 7 5-5 15 15"/>
+            </svg>
+            <span>Chưa có ảnh đại diện</span>
+        </div>
+    </div>
+
+    <input class="admin-sr-only admin-upload-file" type="file" id="admin-image-files" name="tep_anh"
+           aria-label="Chọn ảnh từ máy" aria-describedby="admin-image-hint"
+           accept="image/jpeg,image/png,image/webp,image/gif,.jpg,.jpeg,.png,.webp,.gif"
+           {% if cau_hinh_anh.nhieu_anh %}multiple{% endif %}>
+    <label for="admin-image-files" class="admin-upload-drop" id="admin-image-drop">
+        <svg viewBox="0 0 32 32" width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M9 23H7a5 5 0 1 1 .5-10A8.5 8.5 0 0 1 24 12a5.5 5.5 0 0 1 0 11h-1M16 27V15m-5 5 5-5 5 5"/>
+        </svg>
+        <span>Kéo và thả ảnh vào đây</span>
+        <span class="admin-button admin-button-link">Chọn hình</span>
+    </label>
+
+    <p id="admin-image-hint" class="admin-upload-hint">JPG, PNG, WEBP, GIF · Tối đa 5 MB mỗi ảnh{% if cau_hinh_anh.nhieu_anh %}, {{ cau_hinh_anh.so_anh }} ảnh mới mỗi lần lưu và tổng 20 MB{% endif %}. Ảnh được tải lên khi bấm <strong>Lưu thay đổi</strong>.</p>
+    <p id="admin-image-status" class="admin-upload-status" role="status" aria-live="polite"></p>
+    {% if chon_lai_anh %}<p class="admin-field-error" role="alert">Vui lòng chọn lại các tệp ảnh mới trước khi lưu lại.</p>{% endif %}
+    <input type="hidden" name="anh_dai_dien_moi" id="admin-image-new-cover" value="">
+
+    <div id="admin-image-items" class="admin-upload-items" aria-label="Danh sách ảnh">
+        {% for url in anh_xem_truoc %}
+            <div class="admin-upload-item"><img src="{{ url }}" alt="Ảnh đã lưu {{ loop.index }}" width="56" height="56" loading="lazy" referrerpolicy="no-referrer">
+                <span>{{ 'Ảnh đại diện' if loop.first else 'Ảnh đã lưu' }}</span>
+            </div>
+        {% endfor %}
+    </div>
+
+    <details class="admin-upload-url"{% if form.hinh_anh.errors %} open{% endif %}>
+        <summary>Dùng đường dẫn ảnh có sẵn</summary>
+        <div class="admin-field">
+            <label for="{{ form.hinh_anh.id }}">Đường dẫn ảnh</label>
+            {% if cau_hinh_anh.nhieu_anh %}
+                {{ form.hinh_anh(rows=4, aria_describedby='admin-image-url-help', aria_invalid='true' if form.hinh_anh.errors else 'false') }}
+            {% else %}
+                {{ form.hinh_anh(aria_describedby='admin-image-url-help', aria_invalid='true' if form.hinh_anh.errors else 'false') }}
+            {% endif %}
+            <small id="admin-image-url-help" class="admin-upload-hint">{{ form.hinh_anh.description }}</small>
+            {% for error in form.hinh_anh.errors %}<p class="admin-field-error" role="alert">{{ error }}</p>{% endfor %}
+        </div>
+    </details>
+</section>

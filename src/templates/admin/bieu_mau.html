@@ -1,0 +1,61 @@
+{% extends "admin/base.html" %}
+{% block title %}{{ tieu_de }} | Quản trị{% endblock %}
+{% block content %}
+    {% set url_danh_sach = url_for('admin_module', ma_module=module_hien_tai) %}
+    <nav class="admin-breadcrumb" aria-label="Đường dẫn">
+        <a href="{{ url_for('admin_trang_chu') }}">Quản trị</a><span aria-hidden="true">/</span>
+        <a href="{{ url_danh_sach }}">{{ tieu_de_module }}</a><span aria-hidden="true">/</span>
+        <span aria-current="page">{{ tieu_de }}</span>
+    </nav>
+    <section class="admin-panel" aria-labelledby="admin-form-title">
+        <div class="admin-panel-heading">
+            <div><h1 id="admin-form-title">{{ tieu_de }}</h1><p>{{ tieu_de_module }}</p></div>
+            {% if san_pham_ton %}
+                <a class="admin-button admin-button-link admin-button-secondary" href="{{ url_for('admin_module', ma_module='lich-su-kho', q=san_pham_ton.ma_san_pham) }}">Lịch sử sản phẩm</a>
+            {% endif %}
+        </div>
+        <form class="admin-edit-form" method="post"{% if cau_hinh_anh %} enctype="multipart/form-data"{% endif %} novalidate>
+            {{ form.hidden_tag() }}
+            {% if ten_ban_ghi_xoa is defined %}
+                <div class="admin-callout admin-callout-warning">Bạn có chắc muốn xóa <strong>{{ ten_ban_ghi_xoa }}</strong>? Thao tác này không thể hoàn tác từ trang quản trị.</div>
+            {% else %}
+                {% if san_pham_ton %}
+                    <div class="admin-callout"><strong>{{ san_pham_ton.ten_san_pham }}</strong> · {{ san_pham_ton.ma_san_pham }} · Tồn hiện tại: <strong>{{ san_pham_ton.so_luong_ton }}</strong></div>
+                {% endif %}
+                {% if chua_co_danh_muc %}
+                    <div class="admin-callout admin-callout-warning">Cần có danh mục trước khi lưu sản phẩm. <a href="{{ url_for('admin_luu_du_lieu', ma_module='danh-muc') }}">Thêm danh mục</a></div>
+                {% endif %}
+                <div{% if cau_hinh_anh %} class="admin-editor-layout"{% endif %}>
+                <div class="admin-field-grid {{ 'admin-field-grid-single' if module_hien_tai != 'san-pham' else '' }}">
+                    {% for field in form %}
+                        {% if cau_hinh_anh and field.name == 'hinh_anh' %}
+                            {# Trường URL nằm trong khung tải ảnh dùng chung. #}
+                        {% elif field.widget.input_type|default('') != 'hidden' %}
+                            <div class="admin-field {{ 'admin-field-wide' if field.type == 'TextAreaField' else '' }}">
+                                {{ field.label }}{% if field.flags.required %}<span class="admin-required" aria-hidden="true"> *</span>{% endif %}
+                                {% if field.type == 'TextAreaField' %}
+                                    {{ field(rows=5, aria_describedby=field.id ~ '-help', aria_invalid='true' if field.errors else 'false') }}
+                                {% else %}
+                                    {{ field(aria_describedby=field.id ~ '-help', aria_invalid='true' if field.errors else 'false') }}
+                                {% endif %}
+                                <div id="{{ field.id }}-help" class="admin-field-help">
+                                    {% if field.description %}<small>{{ field.description }}</small>{% endif %}
+                                    {% for error in field.errors %}<p class="admin-field-error" role="alert">{{ error }}</p>{% endfor %}
+                                </div>
+                            </div>
+                        {% elif field.name != 'csrf_token' %}
+                            {% for error in field.errors %}<p class="admin-field-error" role="alert">Dữ liệu biểu mẫu không hợp lệ. Vui lòng tải lại trang. {{ error }}</p>{% endfor %}
+                        {% endif %}
+                    {% endfor %}
+                </div>
+                {% if cau_hinh_anh %}{% include 'admin/chon_anh.html' %}{% endif %}
+                </div>
+                {% if module_hien_tai == 'san-pham' %}<p class="admin-help-line">Sản phẩm mới có tồn kho bằng 0. Dùng mục <a href="{{ url_for('admin_module', ma_module='ton-kho') }}">Tồn kho sản phẩm</a> để nhập hàng.</p>{% endif %}
+            {% endif %}
+            <div class="admin-actions admin-form-actions">
+                <button class="admin-button" type="submit"{% if chua_co_danh_muc %} disabled{% endif %}>{{ 'Xác nhận xóa' if ten_ban_ghi_xoa is defined else 'Lưu thay đổi' }}</button>
+                <a class="admin-button admin-button-link admin-button-secondary" href="{{ url_danh_sach }}">Quay lại danh sách</a>
+            </div>
+        </form>
+    </section>
+{% endblock %}

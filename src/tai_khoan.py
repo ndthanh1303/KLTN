@@ -89,11 +89,11 @@ class DangNhapForm(FlaskForm):
 class DangNhapAdminForm(FlaskForm):
     ten_dang_nhap = StringField(
         "Tên đăng nhập",
-        default="admin",
+        default="",
         validators=[
             InputRequired(message="Vui lòng nhập tên đăng nhập."),
             Length(max=50, message="Tên đăng nhập không vượt quá 50 ký tự."),
-            Regexp(r"\Aadmin\Z", message="Tên đăng nhập quản trị phải là admin."),
+            Regexp(r"\Aadmin\Z", message="Tên đăng nhập không đúng."),
         ],
     )
     mat_khau = truong_mat_khau()  # Dùng lại kiểm tra mật khẩu của form hiện có.

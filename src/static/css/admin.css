@@ -198,3 +198,87 @@ button, a, input { -webkit-tap-highlight-color: transparent; }
     html { scroll-behavior: auto; }
     .admin-sidebar, .admin-quick-card { transition: none !important; }
 }
+
+/* Các thao tác quản lý và biểu mẫu dùng chung. */
+.admin-actions, .admin-row-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; }
+.admin-button-link { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; text-align: center; }
+.admin-button-secondary { border: 1px solid #ded9e5; background: #fff; color: #534a62; }
+.admin-button-secondary:hover { background: #f7f5fa; }
+.admin-button:disabled { opacity: .55; cursor: not-allowed; }
+.admin-row-actions { flex-wrap: nowrap; white-space: nowrap; }
+.admin-action-link { display: inline-flex; align-items: center; min-height: 34px; padding: 5px 10px; border-radius: 5px; background: #f5f2fa; color: #564366; text-decoration: none; }
+.admin-action-link:hover { background: #eee7f4; }
+.admin-danger-link { color: #a92742; background: #fff2f4; }
+.admin-danger-link:hover { background: #fce2e8; }
+.admin-thumb { display: block; object-fit: contain; border: 1px solid #eeebf1; border-radius: 5px; background: #faf9fc; }
+.admin-edit-form, .admin-order-overview { padding: 22px; }
+.admin-field-grid, .admin-order-overview { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 22px; }
+.admin-field-grid-single { grid-template-columns: minmax(0, 540px); }
+.admin-field-wide { grid-column: 1 / -1; }
+.admin-field label { display: inline-block; margin-bottom: 6px; color: #4b435a; font-size: 13px; font-weight: 600; }
+.admin-required { color: #a92742; }
+.admin-field input, .admin-field select, .admin-field textarea {
+    display: block; box-sizing: border-box; width: 100%; min-width: 0; min-height: 42px; padding: 10px 12px;
+    border: 1px solid #d9d3e2; border-radius: 5px; background: #fff; color: #342b40; font: inherit;
+}
+.admin-field textarea { resize: vertical; line-height: 1.5; }
+.admin-field :is(input, select, textarea):focus-visible, .admin-panel :is(a, button):focus-visible { outline: 2px solid var(--admin-red); outline-offset: 2px; }
+.admin-field [aria-invalid='true'] { border-color: #a92742; }
+.admin-field-help, .admin-help-line { color: #665f76; font-size: 13px; line-height: 1.5; }
+.admin-field-help:not(:empty) { margin-top: 6px; }
+.admin-field-help small { font-size: inherit; }
+.admin-field-error { margin: 4px 0; color: #a92742; }
+.admin-form-actions { margin-top: 22px; }
+.admin-callout { margin: 0 0 16px; padding: 12px 14px; border-radius: 5px; background: #f4f1f9; color: #4b435a; font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+.admin-callout-warning { background: #fff4df; color: #76500c; }
+.admin-callout a, .admin-help-line a { color: var(--admin-red-dark); }
+.admin-order-overview h2 { margin: 0 0 10px; color: #4b435a; font-size: 15px; }
+.admin-order-data { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 10px 12px; margin: 0; font-size: 13px; }
+.admin-order-data dt { color: #665f76; }
+.admin-order-data dd { margin: 0; overflow-wrap: anywhere; }
+.admin-order-status-field { max-width: 420px; }
+
+@media (max-width: 660px) {
+    .admin-field-grid, .admin-order-overview { grid-template-columns: minmax(0, 1fr); }
+    .admin-panel-heading { flex-wrap: wrap; }
+    .admin-edit-form, .admin-order-overview { padding: 16px; }
+    .admin-field input, .admin-field select, .admin-field textarea { font-size: 16px; }
+}
+
+/* Khung chọn ảnh dùng chung cho sản phẩm, thương hiệu và danh mục. */
+.admin-editor-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(270px, .57fr); align-items: start; gap: 22px; }
+.admin-upload-card { position: relative; min-width: 0; padding: 16px; border: 1px solid #e6e0ec; border-radius: 8px; background: #fff; }
+.admin-upload-card h2 { margin: 0 0 12px; color: #4b435a; font-size: 15px; }
+.admin-upload-preview { margin-bottom: 12px; border-radius: 6px; overflow: hidden; background: #f5f3f8; }
+.admin-upload-preview img, .admin-upload-empty { width: 100%; height: 188px; }
+.admin-upload-preview img { display: block; object-fit: contain; }
+.admin-upload-empty { display: grid; place-content: center; justify-items: center; gap: 9px; color: #71677f; font-size: 13px; }
+.admin-upload-preview [hidden] { display: none; }
+.admin-upload-drop { display: grid; justify-items: center; gap: 10px; padding: 18px 12px; border: 2px dashed #d8cedf; border-radius: 6px; background: #faf8fc; color: #5f566d; font-size: 13px; text-align: center; cursor: pointer; }
+.admin-upload-drop:hover, .admin-upload-drop.is-dragging { border-color: var(--admin-red); background: #fff2f4; color: var(--admin-red-dark); }
+.admin-upload-file:focus-visible + .admin-upload-drop { outline: 2px solid var(--admin-red); outline-offset: 2px; }
+.admin-upload-drop .admin-button { min-height: 36px; }
+.admin-upload-hint, .admin-upload-status { display: block; margin: 9px 0 0; color: #665f76; font-size: 12px; line-height: 1.5; }
+.admin-upload-status:empty { display: none; }
+.admin-upload-error { color: #a92742; }
+.admin-upload-items { display: grid; gap: 8px; margin-top: 12px; }
+.admin-upload-items:empty { display: none; }
+.admin-upload-item { display: grid; grid-template-columns: 56px minmax(0, 1fr); align-items: center; gap: 9px; padding: 8px; border: 1px solid #eeeaf2; border-radius: 6px; font-size: 12px; }
+.admin-upload-item img { width: 56px; height: 56px; border-radius: 4px; object-fit: contain; background: #f5f3f8; }
+.admin-upload-item strong, .admin-upload-item small { display: block; overflow-wrap: anywhere; }
+.admin-upload-item small { margin: 3px 0; color: #665f76; }
+.admin-upload-item small:empty { display: none; }
+.admin-upload-actions { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
+.admin-upload-actions button { min-height: 29px; border: 0; font: inherit; cursor: pointer; }
+.admin-upload-url { margin-top: 12px; padding-top: 10px; border-top: 1px solid #eeeaf2; }
+.admin-upload-url summary { color: #5f566d; font-size: 13px; cursor: pointer; }
+.admin-upload-url .admin-field { margin-top: 10px; }
+
+@media (max-width: 1100px) {
+    .admin-editor-layout { grid-template-columns: minmax(0, 1fr); }
+    .admin-upload-card { max-width: 540px; }
+}
+@media (max-width: 660px) {
+    .admin-upload-card { padding: 13px; }
+    .admin-upload-actions button { min-height: 36px; }
+}

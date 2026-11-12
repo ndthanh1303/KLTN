@@ -1,0 +1,71 @@
+{% extends "admin/base.html" %}
+{% block title %}Đơn {{ don.ma_don_hang }} | Quản trị{% endblock %}
+{% block content %}
+    <nav class="admin-breadcrumb" aria-label="Đường dẫn">
+        <a href="{{ url_for('admin_trang_chu') }}">Quản trị</a><span aria-hidden="true">/</span>
+        <a href="{{ url_for('admin_module', ma_module='don-hang') }}">Đơn hàng</a><span aria-hidden="true">/</span>
+        <span aria-current="page">Chi tiết</span>
+    </nav>
+    <section class="admin-panel" aria-labelledby="admin-order-title">
+        <div class="admin-panel-heading">
+            <div><h1 id="admin-order-title">Đơn {{ don.ma_don_hang }}</h1><p>{{ don.created_at.strftime('%d/%m/%Y %H:%M') if don.created_at else 'Chưa có ngày tạo' }}</p></div>
+            <span class="admin-status status-{{ don.trang_thai_don_hang }}">{{ trang_thai_don.get(don.trang_thai_don_hang, don.trang_thai_don_hang) }}</span>
+        </div>
+        <div class="admin-order-overview">
+            <div>
+                <h2>Thông tin giao hàng</h2>
+                <dl class="admin-order-data">
+                    <dt>Người nhận</dt><dd>{{ don.ten_nguoi_nhan }}</dd>
+                    <dt>Số điện thoại</dt><dd>{{ don.so_dien_thoai }}</dd>
+                    <dt>Địa chỉ</dt><dd>{{ don.dia_chi_chi_tiet }}, {{ don.phuong_xa }}, {{ don.tinh_thanh }}</dd>
+                    {% if don.ghi_chu %}<dt>Ghi chú</dt><dd>{{ don.ghi_chu }}</dd>{% endif %}
+                </dl>
+            </div>
+            <div>
+                <h2>Thanh toán</h2>
+                <dl class="admin-order-data">
+                    <dt>Phương thức</dt><dd>{{ {'cod': 'Thanh toán khi nhận hàng (COD)', 'chuyen_khoan': 'Chuyển khoản', 'online': 'Trực tuyến'}.get(don.phuong_thuc_thanh_toan, don.phuong_thuc_thanh_toan) }}</dd>
+                    <dt>Trạng thái</dt><dd>{{ {'chua_thanh_toan': 'Chưa thanh toán', 'da_thanh_toan': 'Đã thanh toán', 'hoan_tien': 'Đã hoàn tiền'}.get(don.trang_thai_thanh_toan, don.trang_thai_thanh_toan) }}</dd>
+                    <dt>Tạm tính</dt><dd>{{ money(don.tam_tinh or 0) }}</dd>
+                    <dt>Phí vận chuyển</dt><dd>{{ money(don.phi_van_chuyen or 0) }}</dd>
+                    <dt>Giảm giá</dt><dd>{{ money(don.giam_gia or 0) }}</dd>
+                    <dt>Tổng tiền</dt><dd><strong>{{ money(don.tong_tien) }}</strong></dd>
+                </dl>
+            </div>
+        </div>
+    </section>
+    <section class="admin-panel" aria-labelledby="admin-order-items">
+        <div class="admin-panel-heading"><h2 id="admin-order-items">Sản phẩm trong đơn</h2></div>
+        {% if don.san_pham %}
+            <div class="admin-table-scroll" role="region" aria-labelledby="admin-order-items" tabindex="0">
+                <table class="admin-table">
+                    <thead><tr><th scope="col">Sản phẩm</th><th scope="col">Số lượng</th><th scope="col">Đơn giá</th><th scope="col">Thành tiền</th></tr></thead>
+                    <tbody>{% for sp in don.san_pham %}<tr>
+                        <td>{{ sp.ten_san_pham }}</td><td class="admin-number-cell">{{ sp.so_luong }}</td>
+                        <td class="admin-number-cell">{{ money(sp.don_gia) }}</td><td class="admin-number-cell">{{ money(sp.thanh_tien) }}</td>
+                    </tr>{% endfor %}</tbody>
+                </table>
+            </div>
+        {% else %}<div class="admin-empty"><p>Đơn hàng chưa có chi tiết sản phẩm.</p></div>{% endif %}
+    </section>
+    <section class="admin-panel" aria-labelledby="admin-order-update">
+        <div class="admin-panel-heading"><h2 id="admin-order-update">Cập nhật trạng thái đơn</h2></div>
+        {% if cac_buoc %}
+            <form method="post" class="admin-edit-form">
+                {{ form.hidden_tag() }}
+                {% if 'huy_don' in cac_buoc %}<p class="admin-callout admin-callout-warning">Hủy đơn sẽ hoàn lại số lượng đã trừ khi khách đặt hàng.</p>{% endif %}
+                <div class="admin-field admin-order-status-field">
+                    {{ form.trang_thai_moi.label }}
+                    {{ form.trang_thai_moi(required=true, aria_describedby='admin-order-state-help', aria_invalid='true' if form.trang_thai_moi.errors else 'false') }}
+                    <div id="admin-order-state-help" class="admin-field-help">
+                        {% for error in form.trang_thai_moi.errors + form.trang_thai_cu.errors %}<p class="admin-field-error" role="alert">{{ error }}</p>{% endfor %}
+                        <small>Thao tác này chỉ cập nhật tiến độ đơn. Thông tin thanh toán được theo dõi riêng.</small>
+                    </div>
+                </div>
+                <div class="admin-actions admin-form-actions"><button class="admin-button" type="submit">Cập nhật trạng thái</button></div>
+            </form>
+        {% else %}
+            <div class="admin-edit-form"><p class="admin-callout">Đơn đang ở trạng thái kết thúc, không còn bước tiếp theo.</p></div>
+        {% endif %}
+    </section>
+{% endblock %}

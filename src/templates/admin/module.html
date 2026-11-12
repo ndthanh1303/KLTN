@@ -3,7 +3,18 @@
 {% block content %}
     <nav class="admin-breadcrumb" aria-label="Đường dẫn"><a href="{{ url_for('admin_trang_chu') }}">Quản trị</a><span aria-hidden="true">/</span><span aria-current="page">{{ du_lieu.cau_hinh.tieu_de }}</span></nav>
     <section class="admin-panel" aria-labelledby="admin-module-title">
-        <div class="admin-panel-heading"><div><h1 id="admin-module-title">{{ du_lieu.cau_hinh.tieu_de }}</h1><p>{{ du_lieu.cau_hinh.mo_ta }}</p></div><span class="admin-count">{{ du_lieu.tong }} {{ 'tháng' if module_hien_tai == 'bao-cao' else 'bản ghi' }}</span></div>
+        <div class="admin-panel-heading">
+            <div><h1 id="admin-module-title">{{ du_lieu.cau_hinh.tieu_de }}</h1><p>{{ du_lieu.cau_hinh.mo_ta }}</p></div>
+            <div class="admin-actions">
+                <span class="admin-count">{{ du_lieu.tong }} {{ 'tháng' if module_hien_tai == 'bao-cao' else 'bản ghi' }}</span>
+                {% if muc_ghi %}
+                    <a class="admin-button admin-button-link" href="{{ url_for('admin_luu_du_lieu', ma_module=module_hien_tai) }}">+ Thêm {{ muc_ghi[3] }}</a>
+                {% elif module_hien_tai == 'ton-kho' %}
+                    <a class="admin-button admin-button-link admin-button-secondary" href="{{ url_for('admin_module', ma_module='lich-su-kho') }}">Lịch sử kho</a>
+                {% endif %}
+            </div>
+        </div>
+        {% set co_thao_tac = muc_ghi or module_hien_tai in ['don-hang', 'ton-kho', 'thong-bao'] %}
         {% if du_lieu.tim_kiem %}
             {# GET chỉ tìm kiếm dữ liệu, không thay đổi database. #}
             <form class="admin-search-form" method="get" action="{{ url_for('admin_module', ma_module=module_hien_tai) }}" role="search">
@@ -16,13 +27,15 @@
         {% if du_lieu.dong %}
             <div class="admin-table-scroll" role="region" aria-labelledby="admin-module-title" tabindex="0">
                 <table class="admin-table">
-                    <thead><tr>{% for key, label, kind in du_lieu.cau_hinh.cot %}<th scope="col">{{ label }}</th>{% endfor %}</tr></thead>
+                    <thead><tr>{% for key, label, kind in du_lieu.cau_hinh.cot %}<th scope="col">{{ label }}</th>{% endfor %}{% if co_thao_tac %}<th scope="col">Thao tác</th>{% endif %}</tr></thead>
                     <tbody>
                     {% for dong in du_lieu.dong %}
                         <tr>{% for key, label, kind in du_lieu.cau_hinh.cot %}
                             {% set value = dong[key] %}
                             <td{% if kind in ['so', 'tien'] %} class="admin-number-cell"{% endif %}>
                                 {% if value is none %}—
+                                {% elif kind == 'anh' %}
+                                    {% if url_anh_hop_le(value) %}<img class="admin-thumb" src="{{ value }}" alt="" width="46" height="46" loading="lazy" referrerpolicy="no-referrer">{% else %}—{% endif %}
                                 {% elif kind == 'tien' %}{{ money(value) }}
                                 {% elif kind == 'so' %}{{ "{:,}".format(value).replace(",", ".") }}
                                 {% elif kind == 'ngay' %}{{ value.strftime('%d/%m/%Y %H:%M') }}
@@ -34,7 +47,21 @@
                                 {% elif kind == 'kho' %}{{ {'nhap': 'Nhập kho', 'xuat': 'Xuất kho', 'dieu_chinh': 'Điều chỉnh'}.get(value, value) }}
                                 {% else %}{{ value }}{% endif %}
                             </td>
-                        {% endfor %}</tr>
+                        {% endfor %}
+                        {% if co_thao_tac %}
+                            <td><div class="admin-row-actions">
+                                {% if muc_ghi %}
+                                    <a class="admin-action-link" href="{{ url_for('admin_luu_du_lieu', ma_module=module_hien_tai, ban_ghi_id=dong[muc_ghi[1]]) }}" aria-label="Sửa {{ dong[muc_ghi[2]] }}">Sửa</a>
+                                    <a class="admin-action-link admin-danger-link" href="{{ url_for('admin_xoa_du_lieu', ma_module=module_hien_tai, ban_ghi_id=dong[muc_ghi[1]]) }}" aria-label="Xóa {{ dong[muc_ghi[2]] }}">Xóa</a>
+                                {% elif module_hien_tai == 'don-hang' %}
+                                    <a class="admin-action-link" href="{{ url_for('admin_chi_tiet_don_hang', don_hang_id=dong.don_hang_id) }}">Xem chi tiết</a>
+                                {% elif module_hien_tai == 'ton-kho' %}
+                                    <a class="admin-action-link" href="{{ url_for('admin_cap_nhat_ton_kho', san_pham_id=dong.san_pham_id) }}">Cập nhật tồn</a>
+                                {% elif dong.loai_thong_bao == 'don_hang_moi' and dong.doi_tuong_id %}
+                                    <a class="admin-action-link" href="{{ url_for('admin_chi_tiet_don_hang', don_hang_id=dong.doi_tuong_id) }}">Xem đơn</a>
+                                {% else %}—{% endif %}
+                            </div></td>
+                        {% endif %}</tr>
                     {% endfor %}
                     </tbody>
                 </table>
